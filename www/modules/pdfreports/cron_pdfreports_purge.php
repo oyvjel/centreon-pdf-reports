@@ -67,7 +67,7 @@
 	
 		require_once("DB-Func.php");
 		
-		$centreon_version =getCentreonVersion();
+		$centreon_version =getCentreonVersionPdf();
 		$admin_alias  = getAdminUserAlias();
 		
 		if ( $centreon_version >= 220) {
@@ -78,7 +78,7 @@
 			$CentreonLog = new CentreonUserLog(-1, $pearDB);
 			$centreonAuth = new CentreonAuth($admin_alias, "", "", $pearDB, $CentreonLog, 1);
 
-			$centreon = new Centreon($centreonAuth->userInfos,getVersion());
+			$centreon = new Centreon($centreonAuth->userInfos,getVersionNagios());
 			$oreon = $centreon;
 	
 		} else {
@@ -104,7 +104,10 @@
 	
 	global $pearDB, $pearDBndo, $pearDBO, $oreon ;	
 	
-	
+	$period_arg = NULL;
+    
+	if (count($argv) > 1)
+	  $period_arg = $argv[1];
 	
 	$reports = array();
 	$reports = getActiveReports($period_arg);

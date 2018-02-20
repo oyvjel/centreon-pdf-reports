@@ -257,7 +257,7 @@ error_reporting(E_ALL);
 	$form->addRule('subject', _("Compulsory Subject"), 'required');
 	$form->addRule('report_title', _("Compulsory Title"), 'required');	
 	//$form->addRule('report_hgs', _("Compulsory Hostgroup"), 'required');
-	$form->addRule('report_cgs', _("Compulsory Contactgroup"), 'required');
+//	$form->addRule('report_cgs', _("Compulsory Contactgroup"), 'required');
 	$form->addRule('retention', _("Compulsory"), 'required');
 
 	$form->setRequiredNote("<font style='color: red;'>*</font>&nbsp;". _("Required fields"));

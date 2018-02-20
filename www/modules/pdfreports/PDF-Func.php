@@ -109,10 +109,11 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$tit
 		// print colored table
 		//$pdf->ColoredTable($header, $data,$chart_img);
 		if ($mode == "hgs") { // Hostgroup
-			$pdf->ColoredTable($header, $data,$piechart_img,  $path_www );
+			$pdf->ColoredTable($header, $data,$piechart_img );
 		} else if ($mode == "sgs") { // Servicegroup
-			$pdf->ServicesColoredTable($header, $data,$piechart_img,  $path_www);	
+			$pdf->ServicesColoredTable($header, $data,$piechart_img);
 		}
+
 
 		// ---------------------------------------------------------
 
@@ -120,12 +121,14 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$tit
 		$endDay = date("d", $time);
 		$endYear = date("Y", $time);
 		$endMonth = date("m", $time);
-		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
+#		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
+		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $path_www . "/";
 		$pdfFileName =  $pdfDirName .$endYear."-".$endMonth."-".$endDay."_".$group_name.".pdf";
 		
 		if (!is_dir($pdfDirName))
-			mkdir($pdfDirName);
-		
+		  mkdir($pdfDirName,0775,true);
+#		mkdir($pdfDirName);
+
 		//Close and output PDF document
 		$pdf->Output($pdfFileName, 'F'); 
 
@@ -140,8 +143,8 @@ function pieGen($stats, $mode) {
 	
 	global $centreon_path;
 	// Create and populate the pData object 
-	 $MyData = new pData();   
-	 
+	 $MyData = new pData();
+
 	// print_r($stats["average"]);
 	
 	$arrPoints = array();
@@ -271,8 +274,8 @@ function pieGen($stats, $mode) {
 
 	 /* Render the picture  */
 	 
-//	$pie_file = tempnam( "/tmp" , "reportreon_pie_" ); 
-	$pie_file = tempnam( $centreon_path . "/www/modules/pdfreports/generatedFiles/tmp" , "reportreon_pie_" ); 
+	$pie_file = tempnam( "/tmp" , "reportreon_pie_" );
+//	$pie_file = tempnam( $centreon_path . "/www/modules/pdfreports/generatedFiles/tmp" , "reportreon_pie_" );
 	
 	$myPicture->render($pie_file . ".png");
 	@unlink($pie_file );

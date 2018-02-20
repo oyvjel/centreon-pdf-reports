@@ -152,7 +152,7 @@ EOD;
 	$tbl1 = <<<EOD
 		<table border="1" align="center">
 		  <tr  style="background-color:#F7FAFF;">
-			  <td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="$piechart_img" /></td>
+			  <td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
 			  <td colspan="4" style="background-color:#D7D6DD;" >Hosts group state</td>
 		  </tr>
 		  <tr style="background-color:#D5DFEB;">
@@ -458,7 +458,7 @@ EOD;
 	$tbl1 = <<<EOD
 <table border="1" align="center">
 	<tr   border="0" >
-	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="$piechart_img" /></td>
+	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
 	<td colspan="4"  style="background-color:#D7D7DD;" >Services group state</td>
 	</tr>
 <tr>

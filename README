@@ -29,3 +29,5 @@ Configuration -> PDF Reports
 
 Find more there: http://community.centreon.com/projects/pdfreports/
 Or on IRC : freenode, #Centreon
+
+Adapted to 2.8 by Øyvind Jelstad with good help from http://www.sugarbug.fr/atelier/techniques/ihmweb/centreon/centreon-pdf-reports-27/

@@ -32,7 +32,7 @@ error_reporting(E_ALL);
     global $pearDB, $centreon_path;
 
     require_once $centreon_path."www/include/common/common-Func.php";
-    require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";    
+    require_once $centreon_path."www/include/Administration/parameters/DB-Func.php"
     
     updateOption($pearDB, "pdfreports_smtp_server_address",  "127.0.0.1");
     updateOption($pearDB, "pdfreports_email_sender", "pdfreports@local.dom");

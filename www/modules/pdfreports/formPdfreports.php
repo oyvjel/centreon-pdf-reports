@@ -34,7 +34,9 @@
 	#PHP functions
 	require_once $path."DB-Func.php";		
 	require_once $centreon_path."www/include/common/common-Func.php";
-	require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";
+#	require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";
+        require_once $centreon_path."www/include/Administration/parameters/DB-Func.php";
+
 	require_once $centreon_path."www/class/centreonDB.class.php";
 	require_once "./include/reporting/dashboard/common-Func.php";
 		
@@ -80,7 +82,7 @@
 	#
 	## Form Rules
 	#
-	function slash($elem = NULL)	{
+	function slash_not_used($elem = NULL)	{
 		if ($elem)
 			return rtrim($elem, "/")."/";
 	}

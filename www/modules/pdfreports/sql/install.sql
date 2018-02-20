@@ -1,11 +1,19 @@
 --
 -- Add topology
 --
-
-INSERT INTO `topology` (`topology_id`, `topology_name`, `topology_icone`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`, `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`) VALUES (NULL, 'PDF Reports', NULL, 50101, 5010150, 150, 1, './modules/pdfreports/pdfreportsOpt.php', '&o=pdfreports', '0', '1', '1', NULL, NULL, NULL);
-INSERT INTO `topology` (`topology_id`, `topology_name`, `topology_icone`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`, `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`) VALUES (NULL, 'PDF Reports', NULL, 6, 640, 100, 1, './modules/pdfreports/report.php', NULL, '0', '1', '1', NULL, NULL, NULL);
-INSERT INTO `topology` (`topology_id`, `topology_name`, `topology_icone`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`, `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`) VALUES (NULL, 'PDF Reports', NULL, 640, NULL, NULL, 1, NULL, NULL, NULL, NULL, '1', NULL, NULL, NULL);
-INSERT INTO `topology` (`topology_id`, `topology_name`, `topology_icone`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`, `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`) VALUES (NULL, 'Reports', './img/icones/16x16/reporting.gif', 640, 64001, 10, 1, './modules/pdfreports/report.php', NULL, '0', '1', '1', NULL, NULL, NULL);
+-- OJ: TODO: topology_icone has gone! 
+INSERT INTO `topology` (`topology_name`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`, 
+       `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`) 
+   VALUES ('PDF Reports', 501, 50120, 150, 1, './modules/pdfreports/pdfreportsOpt.php', '&o=pdfreports', '0', '1', '1', NULL, NULL, NULL);
+INSERT INTO `topology` (`topology_name`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`,
+       `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`)
+   VALUES ('PDF Reports', 6, 640, 100, 1, './modules/pdfreports/report.php', NULL, '0', '1', '1', NULL, NULL, NULL);
+INSERT INTO `topology` (`topology_name`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`,
+        `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`)
+   VALUES ('PDF Reports', 640, NULL, NULL, 1, NULL, NULL, NULL, NULL, '1', NULL, NULL, NULL);
+INSERT INTO `topology` (`topology_name`, `topology_parent`, `topology_page`, `topology_order`, `topology_group`,
+        `topology_url`, `topology_url_opt`, `topology_popup`, `topology_modules`, `topology_show`, `topology_style_class`, `topology_style_id`, `topology_OnClick`)
+   VALUES ('Reports', 640, 64001, 10, 1, './modules/pdfreports/report.php', NULL, '0', '1', '1', NULL, NULL, NULL);
 
 
 

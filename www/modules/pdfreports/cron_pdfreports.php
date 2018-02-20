@@ -70,7 +70,7 @@
 	
 		require_once("DB-Func.php");
 		
-		$centreon_version =getCentreonVersion();
+		$centreon_version =getCentreonVersionPdf();
 		$admin_alias  = getAdminUserAlias();
 		
 		if ( $centreon_version >= 220) {
@@ -81,7 +81,7 @@
 			$CentreonLog = new CentreonUserLog(-1, $pearDB);
 			$centreonAuth = new CentreonAuth($admin_alias, "", "", $pearDB, $CentreonLog, 1);
 			//$centreon = new Centreon($centreonAuth->userInfos, $generalOptions["nagios_version"]);
-			$centreon = new Centreon($centreonAuth->userInfos,getVersion());
+			$centreon = new Centreon($centreonAuth->userInfos,getVersionNagios());
 			$oreon = $centreon;
 	
 		} else {
@@ -146,7 +146,8 @@
 				
 				//print_r($stats);
 				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $l , $reportinfo["report_title"] , "" );
+#				$Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $l , $reportinfo["report_title"] , "" );
+				$Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $l , $reportinfo["report_title"] , $reportinfo['report_id'] );
 				//$Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $l, getGeneralOptInfo("pdfreports_report_header_logo") , $reportinfo["report_title"]  );
 				
 				//print_r($Allfiles); 
@@ -162,7 +163,8 @@
 				//print_r($stats);				
 
 				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l,  $reportinfo["report_title"] , "");
+#				$Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l,  $reportinfo["report_title"] , "");
+				$Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l,  $reportinfo["report_title"] , $reportinfo['report_id'] );
 				//$Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l, getGeneralOptInfo("pdfreports_report_header_logo") , $reportinfo["report_title"]  );
 				
 				//print_r($Allfiles); 

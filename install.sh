@@ -229,6 +229,7 @@ fi
 _tmp_install_opts="0"
 silent_install="0"
 user_conf=""
+CENTREON_CONF="/etc/centreon/"
 
 ## Getopts
 while getopts "iu:h" Options
@@ -236,6 +237,7 @@ do
 	case ${Options} in
 		i )	_tmp_install_opts="1"
 			silent_install="0"
+#			CENTREON_CONF="${OPTARG%/}"
 			;;
 		u )	_tmp_install_opts="1"
 			silent_install="1"
@@ -311,7 +313,7 @@ if [ "$binary_fail" -eq 1 ] ; then
 fi
 
 if [ "$silent_install" -eq 0 ] ; then
-	get_centreon_configuration_location;
+#	get_centreon_configuration_location;
 	get_centreon_parameters;
 	load_parameters=$?
 	

@@ -60,8 +60,15 @@ error_reporting(E_ALL);
 		require_once($centreon_path . "www/class/other.class.php");   
 	}
 
+function getVersionNagios() {
+  global $pearDB;
+  $DBRESULT = $pearDB->query("SELECT `value` FROM `options` WHERE `key` = 'nagios_version' LIMIT 1");
+  $row = $DBRESULT->fetchRow();
+  $DBRESULT->free();
+  return $row["value"];
+}
 
-function getCentreonVersion(){	
+function getCentreonVersionPdf(){	
 
 	## Get centreon version
 	global $pearDB;
@@ -100,7 +107,7 @@ function getGeneralOptInfo($option_name)	{
 	
 	//reprise de la fonction getPeriodToReport de www/include/reporting/dashboard/common-Func.php pour retourner un timestamp sans $_POST
 function getPeriodToReportFork($arg) {	
-		$interval = getDateSelect_predefined($arg);
+		$interval = getDateSelectPredefined($arg);
 		$start_date = $interval[0];
 		$end_date = $interval[1];
 		return(array($start_date,$end_date));
@@ -509,26 +516,30 @@ function getServiceGroupReport($report_id) {
             
             $reportingTimePeriod = getreportingTimePeriod();
             
-	    if (isset($_SERVER['DOCUMENT_ROOT']) ) {
-			$nb_folders = count(explode( "/", $_SERVER['DOCUMENT_ROOT'] )); 
-			$path_www = "/". implode( "/", array_fill(0, intval($nb_folders) - 1, '..'));
-			//echo $_SERVER['DOCUMENT_ROOT'] . "  " . intval($nb_folders) -1 . "  " .  $path_www . "<br />";	
-		}
+	    //	    if (isset($_SERVER['DOCUMENT_ROOT']) ) {
+	    //		$nb_folders = count(explode( "/", $_SERVER['DOCUMENT_ROOT'] )); 
+	    //		$path_www = "/". implode( "/", array_fill(0, intval($nb_folders) - 1, '..'));
+	    // echo $_SERVER['DOCUMENT_ROOT'] . "  " . intval($nb_folders) -1 . "  " .  $path_www . "<br />";	
+	    //	}
 
 
             if (isset($hosts) && count($hosts) > 0) {
                 foreach ( $hosts['report_hgs'] as $hgs_id ) {
                     $stats = array();
                     $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
-                    $Allfiles[] = pdfGen($report_id, getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, "" , $reportinfo["report_title"] , $path_www  ); // "/../.."
-                    //print_r($Allfiles);
+		    //		    print_r($l);
+
+		    // $Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, "" , $reportinfo["report_title"] , $path_www  ); // "/../.."
+		    $Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $l , $reportinfo["report_title"] , $reportinfo['report_id'] );
+
+		    //                    print_r($Allfiles);
                 }
             }
             if (isset( $services ) && count($services) > 0 ) {
                 foreach ( $services['report_sg'] as $sg_id ) {
                     $sg_stats = array();
                     $sg_stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
-                    $Allfiles[] = pdfGen($report_id, getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l,  $reportinfo["report_title"] , $path_www );
+                    $Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l,  $reportinfo["report_title"] ,$reportinfo['report_id'] );
                 }
             }
             $emails = getReportContactEmail($report_id);
