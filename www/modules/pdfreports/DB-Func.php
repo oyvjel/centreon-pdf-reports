@@ -107,7 +107,7 @@ function getGeneralOptInfo($option_name)	{
 	
 	//reprise de la fonction getPeriodToReport de www/include/reporting/dashboard/common-Func.php pour retourner un timestamp sans $_POST
 function getPeriodToReportFork($arg) {	
-		$interval = getDateSelectPredefined($arg);
+		$interval = getDateSelect_predefined($arg);
 		$start_date = $interval[0];
 		$end_date = $interval[1];
 		return(array($start_date,$end_date));
