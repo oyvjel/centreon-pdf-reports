@@ -1,9 +1,10 @@
 
 DELETE FROM `options` WHERE `key` LIKE 'pdfreports_%';
 
-DELETE FROM `topology` WHERE `topology_page` = '5010150';
+DELETE FROM `topology` WHERE `topology_page` = '50120';
 DELETE FROM `topology` WHERE `topology_page` = '64001';
 DELETE FROM `topology` WHERE `topology_page` = '640';
+DELETE FROM `topology` WHERE topology_name like 'PDF Reports%';
 
 
 DROP TABLE IF EXISTS `pdfreports_reports_contactgroup_relation`;

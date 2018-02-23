@@ -31,13 +31,13 @@ error_reporting(E_ALL);
 
     global $pearDB, $centreon_path;
 
-    require_once $centreon_path."www/include/common/common-Func.php";
-    require_once $centreon_path."www/include/Administration/parameters/DB-Func.php"
+require_once $centreon_path."www/include/common/common-Func.php";
+require_once $centreon_path."www/include/Administration/parameters/DB-Func.php";
     
     updateOption($pearDB, "pdfreports_smtp_server_address",  "127.0.0.1");
     updateOption($pearDB, "pdfreports_email_sender", "pdfreports@local.dom");
     updateOption($pearDB, "pdfreports_report_author",  "Centreon Server");
     updateOption($pearDB, "pdfreports_report_header_logo", "centreon.gif");
-	updateOption($pearDB, "pdfreports_path_gen", $centreon_path . "www/modules/pdfreports/generatedFiles");
+    updateOption($pearDB, "pdfreports_path_gen","/var/www/reports/");
     
 ?>
