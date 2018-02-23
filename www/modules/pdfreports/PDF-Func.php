@@ -41,9 +41,11 @@ function init_pdf_header() {
 function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$title, $path_www){
 		global $centreon_path;
 
+		define ('PDF_PAGE_ORIENTATION', 'P');
 		
 		// create new PDF document
-		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+#		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+		$pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
 		// set document information
 		$pdf->SetCreator("PDF Reports Module");
