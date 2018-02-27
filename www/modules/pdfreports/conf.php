@@ -22,7 +22,7 @@
 // Be Carefull with internal_name, it's case sensitive (with directory module name)
 $module_conf['pdfreports']["name"] = "pdfreports";
 $module_conf['pdfreports']["rname"] = "PDF Reports module";
-$module_conf['pdfreports']["mod_release"] = "2.8.0";
+$module_conf['pdfreports']["mod_release"] = "2.7.0";
 $module_conf['pdfreports']["infos"] = "Generate and email PDF reports for hostgroups and servicegroups";
 $module_conf['pdfreports']["is_removeable"] = "1";
 $module_conf['pdfreports']["author"] = "O Jelstad / Charles Judith / LKCO / Wistof / Raphael Troiano";
