@@ -49,7 +49,8 @@ WEB_GROUP="0"
 NAGIOS_USER="0"
 NAGIOS_GROUP="0"
 NAGIOS_PLUGIN="0"
-BACKUP="www/modules/pdfreports-backup"
+#BACKUP="www/modules/pdfreports-backup"
+BACKUP="/tmp/pdfreports-backup"
 PWD=`pwd`
 TEMP=/tmp/install.$$
 PROGRAM="install.sh"
@@ -157,16 +158,16 @@ function install_module() {
 	INSTALL_DIR_MODULE=$INSTALL_DIR_CENTREON/$MODULE_DIR
 
 	if [ -d $INSTALL_DIR_MODULE ] ; then
-		if [ -d  $INSTALL_DIR_CENTREON/$BACKUP ] ; then
+		if [ -d  $BACKUP ] ; then
 			echo_success "Delete old PDFReports backup" "$ok"
-			/bin/rm -Rf $INSTALL_DIR_CENTREON/$BACKUP/*
+			/bin/rm -Rf $BACKUP/*
 		else
 			echo_success "Create a directory to backup old files" "$ok"
-			/bin/mkdir $INSTALL_DIR_CENTREON/$BACKUP
+			/bin/mkdir $BACKUP
 		fi
 		
 		echo_success "Backup old installation" "$ok"
-		mv $INSTALL_DIR_MODULE/* $INSTALL_DIR_CENTREON/$BACKUP >> $LOG_FILE 2>> $LOG_FILE		
+		mv $INSTALL_DIR_MODULE/* $BACKUP >> $LOG_FILE 2>> $LOG_FILE		
 	fi
 
 	if [ ! -d $INSTALL_DIR_MODULE ] ; then
@@ -218,6 +219,7 @@ export line
 
 ## Define a default log file
 LOG_FILE="$PWD/install.log"
+LOG_FILE="/tmp/install_pdfreport.log"
 
 ## Valid if you are root 
 USERID=`id -u`

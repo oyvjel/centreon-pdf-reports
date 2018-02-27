@@ -516,21 +516,16 @@ function getServiceGroupReport($report_id) {
             
             $reportingTimePeriod = getreportingTimePeriod();
             
-	    //	    if (isset($_SERVER['DOCUMENT_ROOT']) ) {
-	    //		$nb_folders = count(explode( "/", $_SERVER['DOCUMENT_ROOT'] )); 
-	    //		$path_www = "/". implode( "/", array_fill(0, intval($nb_folders) - 1, '..'));
-	    // echo $_SERVER['DOCUMENT_ROOT'] . "  " . intval($nb_folders) -1 . "  " .  $path_www . "<br />";	
-	    //	}
-
 
             if (isset($hosts) && count($hosts) > 0) {
                 foreach ( $hosts['report_hgs'] as $hgs_id ) {
                     $stats = array();
                     $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
 		    //		    print_r($l);
-
-		    // $Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, "" , $reportinfo["report_title"] , $path_www  ); // "/../.."
-		    $Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $l , $reportinfo["report_title"] , $reportinfo['report_id'] );
+		    //	      	    print "<pre>\n";
+		    //              print_r($stats);
+		    //              print "</pre>\n";
+		    $Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $reportinfo );
 
 		    //                    print_r($Allfiles);
                 }
@@ -539,16 +534,28 @@ function getServiceGroupReport($report_id) {
                 foreach ( $services['report_sg'] as $sg_id ) {
                     $sg_stats = array();
                     $sg_stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
-                    $Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $l,  $reportinfo["report_title"] ,$reportinfo['report_id'] );
+                    $Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
                 }
             }
-            $emails = getReportContactEmail($report_id);
-            $files = array();
-            foreach ( $Allfiles as $file) {
-                $files[basename($file)]["url"] = $file;
-            }
+	    $files = array();
+	    $b = getGeneralOptInfo("pdfreports_path_gen");
+	    print "<p>Generated files:<ul>\n";
+	    foreach ( $Allfiles as $file) {
+	      $files[basename($file)]["url"] = $file;
+	      $a = str_replace($b,"/reports/",$file);
+	      print "<li><a href=\"$a\">". $file . "</a> </li>\n";
+	    }
+	    print "</ul>\n";
+	    if ($reportinfo['activate'] > 0 ) {
+	      $emails = getReportContactEmail($report_id);
 
-            mailer(getGeneralOptInfo("pdfreports_report_author"),getGeneralOptInfo("pdfreports_email_sender"),$emails,$reportinfo['subject'],$reportinfo['mail_body'] , getGeneralOptInfo("pdfreports_smtp_server_address"),$files,$reportinfo['name'] );
+	      mailer(getGeneralOptInfo("pdfreports_report_author"),
+		     getGeneralOptInfo("pdfreports_email_sender"),$emails,$reportinfo['subject'],$reportinfo['mail_body'] ,
+		     getGeneralOptInfo("pdfreports_smtp_server_address"),$files,$reportinfo['name'] );
+	    } else {
+	      print "<p>Generated, but NO mail sent, report is not active <p>\n";
+	    }
+
             $files = null;
             $Allfiles = null;
             $emails = null;

@@ -38,26 +38,28 @@ function init_pdf_header() {
 }
 
 //function pdfGen($group_name, $start_date, $end_date,$stats,$l,$logo_header, $chart_img){
-function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$title, $path_www){
+function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		global $centreon_path;
 
+		define ('PDF_PAGE_ORIENTATION', 'P');
 		
 		// create new PDF document
-		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+#		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+		$pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
 		// set document information
 		$pdf->SetCreator("PDF Reports Module");
 		$pdf->SetAuthor(getGeneralOptInfo("pdfreports_report_author"));
 		//$pdf->SetAuthor('Fully Automated Nagios');
 
-		$pdfTitle = $title . " " . $group_name;
+		$pdfTitle = $reportinfo["report_title"] . " " . $group_name;
 		//$pdfTitle = "Rapport de supervision du hostgroup ".$group_name; 
 		$pdf->SetTitle($pdfTitle);
 		//$pdf->SetSubject('TCPDF Tutorial');
 		//$pdf->SetKeywords('TCPDF, PDF, example, test, guide');
 
 		// define default header data
-		$header = $title . " " .$group_name;
+		$header = $reportinfo["report_title"] . " " .$group_name;
 		//$header = "Rapport de supervision du hostgroup ".$group_name;
 		//$ip = $_SERVER['HOSTNAME'];
 		$startDate = date("d/m/Y", $start_date);
@@ -89,7 +91,10 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$tit
 		$pdf->setImageScale(PDF_IMAGE_SCALE_RATIO); 
 
 		//set some language-dependent strings
-		$pdf->setLanguageArray($l); 
+		$lg = Array();
+		$lg['a_meta_charset'] = 'UTF-8';
+		$lg['a_meta_language'] = 'no';
+		$pdf->setLanguageArray($lg);
 
 		// ---------------------------------------------------------
 
@@ -98,6 +103,7 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$tit
 
 		// add a page
 		$pdf->AddPage();
+		$pdf->writeHTML($reportinfo["report_comment"] ); 
 
 		//Column titles
 		$header = array('Status', 'Time', 'Total Time', 'Mean Time', 'Alert');
@@ -124,7 +130,7 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$l,$tit
 		$endYear = date("Y", $time);
 		$endMonth = date("m", $time);
 #		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
-		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $path_www . "/";
+		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
 		$pdfFileName =  $pdfDirName .$endYear."-".$endMonth."-".$endDay."_".$group_name.".pdf";
 		
 		if (!is_dir($pdfDirName))

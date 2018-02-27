@@ -63,14 +63,14 @@ class MYPDF extends TCPDF {
         $this->SetFillColor(255, 0, 0);
         $this->SetTextColor(255);
         $this->SetDrawColor(128, 0, 0);
-        $this->SetLineWidth(0.3);
-        $this->SetFont('', 'B');
+        $this->SetLineWidth(0.1);
+	//        $this->SetFont('', 'B');
         // Header
 
         // Color and font restoration
         $this->SetFillColor(224, 235, 255);
         $this->SetTextColor(0);
-        $this->SetFont('');
+	//	$this->SetFont(PDF_FONT_NAME_DATA, 4);
         // Data
         $fill = 0;
 
@@ -150,7 +150,7 @@ EOD;
 //creation du tableau pour tcpdf, format html
 	
 	$tbl1 = <<<EOD
-		<table border="1" align="center">
+                  <table border="0" style="text-align: center;font-size:12">
 		  <tr  style="background-color:#F7FAFF;">
 			  <td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
 			  <td colspan="4" style="background-color:#D7D6DD;" >Hosts group state</td>
@@ -213,9 +213,9 @@ EOD;
 //init du deuxième tableau
 
 if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
-  $MAINTENANCE_HEADER = '<td width="110" style="background-color:#CC99FF;">Schedule Downtime</td>';
-  $MAINTENANCE_HEADER_LABEL = "<td width='110'>%</td>";
-  $HEADER_WIDTH = "700";
+  $MAINTENANCE_HEADER = '<td  width="60">Schedule Downtime</td>';
+  $MAINTENANCE_HEADER_LABEL = '<td width="60">%</td>';
+  $HEADER_WIDTH = "520";
 } else {
    $MAINTENANCE_HEADER = "";
    $MAINTENANCE_HEADER_LABEL = "";
@@ -226,39 +226,50 @@ if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
 
 $tbl2 = <<<EOD
 
-<table border="1" align="center">
+<table border="0" style="text-align: center;font-size:9">
 	<tr style="background-color:#D7D6DC;">
-	  <td width="$HEADER_WIDTH">State Breakdowns For Hosts</td>
+	  <td colspan="9" width="$HEADER_WIDTH">State Breakdowns For Hosts</td>
 	</tr>
 	<tr style="background-color:#D5DFEB;">
-	    <td colspan="2" width="150"></td>
-	    <td width="110" style="background-color:#19EE11;">Up</td>
-	    <td width="110" style="background-color:#F91E05;">Down</td>
-	    <td width="110" style="background-color:#82CFD8;">Unreachable</td>
+	    <td colspan="1" width="130"></td>
+	    <td colspan="2" width="90">Up</td>
+	    <td colspan="2" width="90">Down</td>
+	    <td colspan="2" width="90">Unreachable</td>
 	    $MAINTENANCE_HEADER 
-	    <td width="110" style="background-color:#CCF8FF;">Undetermined</td>
+	    <td width="60">Undetermined</td>
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
-	    <td width="150">Host</td>
+	    <td width="130">Host</td>
 	    <td width="60">%</td>
-	    <td width="50">Alert</td>
+	    <td width="30">Alert</td>
 	    <td width="60">%</td>
-	    <td width="50">Alert</td>
+	    <td width="30">Alert</td>
 	    <td width="60">%</td>
-	    <td width="50">Alert</td>
+	    <td width="30">Alert</td>
 	    $MAINTENANCE_HEADER_LABEL
-	    <td width="110">%</td>
+	    <td width="60">%</td>
 	</tr>
 		    
 
 EOD;
 
+unset($data['average']);
+
+usort($data, function($a, $b) {
+    return $a['UP_MP'] - $b['UP_MP'];
+  });
+
+//print "<pre>\n After SORT: \n";
+//print_r($data);
+//print "</pre>\n";
+
+
 
 //parsing des hosts du hostgroup et ajout dans tableau
 $i =0;
 foreach ($data	 as $key => $tab) {
-  if ($key != "average") {
+  //  if ($key != "average") {
 
 //bug centreon - hostname et service inverses   
 $NAME = $tab["NAME"];
@@ -266,13 +277,16 @@ $NAME = $tab["NAME"];
 //print_r($tab);
 
 $UP_TP = $tab["UP_TP"];
+$UP_MP = $tab["UP_MP"];
 $UP_A = $tab["UP_A"];
 $DOWN_TP = $tab["DOWN_TP"];
+$DOWN_MP = $tab["DOWN_MP"];
 $DOWN_A = $tab["DOWN_A"];
 $UNREACHABLE_TP = $tab["UNREACHABLE_TP"];
+$UNREACHABLE_MP = $tab["UNREACHABLE_MP"];
 $UNREACHABLE_A = $tab["UNREACHABLE_A"];
 if (isset ($tab["MAINTENANCE_TP"])) {
-  $MAINTENANCE_TP =  "<td width='110'>".$tab["MAINTENANCE_TP"]."</td>";
+  $MAINTENANCE_TP =  '<td width="60" style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
   
 } else {
   $MAINTENANCE_TP = "";
@@ -284,22 +298,22 @@ $BACKGROUND_COLOR = ( $i % 2 ? "EDF4FF": "F7FAFF");
 $tbl2 .= <<<EOD
 
 <tr style="background-color:#$BACKGROUND_COLOR;">
-<td width="150">$NAME</td>
-<td width="60">$UP_TP</td>
-<td width="50">$UP_A</td>
-<td width="60">$DOWN_TP</td>
-<td width="50">$DOWN_A</td>
-<td width="60">$UNREACHABLE_TP</td>
-<td width="50">$UNREACHABLE_A</td>
+<td width="130" align="left">$NAME</td>
+<td width="60" style="background-color:#13EB3A;">$UP_TP ($UP_MP)</td>
+<td width="30" style="background-color:#13EB3A;">$UP_A</td>
+<td width="60" style="background-color:#F91D05;">$DOWN_TP  ($DOWN_MP)</td>
+<td width="30" style="background-color:#F91D05;">$DOWN_A</td>
+<td width="60" style="background-color:#82CFD8;">$UNREACHABLE_TP ($UNREACHABLE_MP)</td>
+<td width="30" style="background-color:#82CFD8;">$UNREACHABLE_A</td>
 $MAINTENANCE_TP
-<td width="110">$UNDETERMINED_TP</td>
+<td width="60" style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
 </tr>
 
 
 
 EOD;
 $i++;
-  }
+//  }
 }
 
 //fermeture du tableau
@@ -307,6 +321,11 @@ $tbl2 .= <<<EOD
 </table>
 
 EOD;
+
+$tbl1 .= "\n <p>Total number of hosts = " . $i . "<p>\n";
+
+//print $tbl1;
+//print $tbl2;
 
 //$this->writeHTML($tbl, true, false, false, false, ''); 
 $this->writeHTML($tbl1, true, false, false, false, ''); 
@@ -327,7 +346,7 @@ public function ServicesColoredTable($header,$data,$piechart_img) {
         $this->SetFillColor(255, 0, 0);
         $this->SetTextColor(255);
         $this->SetDrawColor(128, 0, 0);
-        $this->SetLineWidth(0.3);
+        $this->SetLineWidth(0.1);
         $this->SetFont('', 'B');
         // Header
 
@@ -391,7 +410,7 @@ public function ServicesColoredTable($header,$data,$piechart_img) {
             [UNDETERMINED_TP] => 33.33
             [MAINTENANCE_TP] => 0
             [MEAN_TIME] => 172800
-            [OK_MP] => 100
+            [OK_MP] =>  100
             [WARNING_MP] => 0
             [CRITICAL_MP] => 0
             [UNKNOWN_MP] => 0
@@ -456,7 +475,7 @@ EOD;
 //creation du tableau pour tcpdf, format html
 	
 	$tbl1 = <<<EOD
-<table border="1" align="center">
+<table border="0" align="center">
 	<tr   border="0" >
 	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
 	<td colspan="4"  style="background-color:#D7D7DD;" >Services group state</td>
@@ -522,69 +541,81 @@ EOD;
 //init du deuxième tableau
 
 if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
-  $MAINTENANCE_HEADER = '<td width="100" >Schedule Downtime</td>';
-  $MAINTENANCE_HEADER_LABEL = "<td width='100'>%</td>";
-  $HEADER_WIDTH = "720";
+  $MAINTENANCE_HEADER = '<td width="45" >Schedule Downtime</td>';
+  $MAINTENANCE_HEADER_LABEL = '<td width="45">%</td>';
+  $HEADER_WIDTH = "530";
 } else {
    $MAINTENANCE_HEADER = "";
    $MAINTENANCE_HEADER_LABEL = "";
-   $HEADER_WIDTH = "640";
+   $HEADER_WIDTH = "485";
 }
 
 
 $tbl2 = <<<EOD
 
-<table border="1" align="center" valign="middle">
+<table border="0" align="center" valign="middle" style="font-size:8;">
 	<tr>
 	<td width="$HEADER_WIDTH" style="background-color:#D7D6DD;" >State Breakdowns For Host Services</td>
 	</tr>
 	<tr style="background-color:#D5DFEB;" >
-		<td colspan="2" width="200"  ></td>
-		<td width="80" >OK</td>
-		<td width="80" >Warning</td>
-		<td width="80" >Critical</td>
-		<td width="80" >Unknown</td>
+		<td colspan="2" width="150"  ></td>
+		<td width="70" >OK</td>
+		<td width="70" >Warning</td>
+		<td width="70" >Critical</td>
+		<td width="70" >Unknown</td>
 		$MAINTENANCE_HEADER
-		<td width="100" >Undetermined</td>
+		<td width="55" >Undetermined</td>
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
 		<td width="90" >Host Name</td>
-		<td width="110">Service</td>
-		<td width="40">%</td>
-		<td width="40">Alert</td>
-		<td width="40">%</td>
-		<td width="40">Alert</td>
-		<td width="40">%</td>
-		<td width="40">Alert</td>
-		<td width="40">%</td>
-		<td width="40">Alert</td>
+		<td width="60">Service</td>
+		<td width="50">%</td>
+		<td width="20">Alert</td>
+		<td width="50">%</td>
+		<td width="20">Alert</td>
+		<td width="50">%</td>
+		<td width="20">Alert</td>
+		<td width="50">%</td>
+		<td width="20">Alert</td>
 		$MAINTENANCE_HEADER_LABEL
-		<td width="100">%</td>
+		<td width="55">%</td>
 	</tr>
 EOD;
+
+
+unset($data['average']);
+
+usort($data, function($a, $b) {
+    return $a['OK_MP'] - $b['OK_MP'];
+  });
+
 
 
 //parsing des services du service group et ajout dans tableau
 $i =0;
 foreach ($data	 as $key => $tab) {
-  if ($key != "average") {
+  //  if ($key != "average") {
 
 //bug centreon - hostname et service inverses   
 $HOST_NAME = $tab["HOST_NAME"];
 $SERVICE_DESC = $tab["SERVICE_DESC"];
 
 $OK_TP = $tab["OK_TP"];
+$OK_MP = $tab["OK_MP"];
 $OK_A = $tab["OK_A"];
 $WARNING_TP = $tab["WARNING_TP"];
+$WARNING_MP = $tab["WARNING_MP"];
 $WARNING_A = $tab["WARNING_A"];
 $CRITICAL_TP = $tab["CRITICAL_TP"];
+$CRITICAL_MP = $tab["CRITICAL_MP"];
 $CRITICAL_A = $tab["CRITICAL_A"];
 $UNKNOWN_TP = $tab["UNKNOWN_TP"];
+$UNKNOWN_MP = $tab["UNKNOWN_MP"];
 $UNKNOWN_A = $tab["UNKNOWN_A"];
 $UNDETERMINED_TP = $tab["UNDETERMINED_TP"];
 if (isset ($tab["MAINTENANCE_TP"])) {
-  $MAINTENANCE_TP =  "<td width='100' style='background-color:#CC99FF;'>".$tab["MAINTENANCE_TP"]."</td>";
+  $MAINTENANCE_TP =  '<td width="45" style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
   
 } else {
   $MAINTENANCE_TP = "";
@@ -595,25 +626,25 @@ $BACKGROUND_COLOR = ( $i % 2 ? "EDF4FF": "F7FAFF");
 $tbl2 .= <<<EOD
 
 <tr style="background-color:#$BACKGROUND_COLOR;" >
-<td width="90">$HOST_NAME</td>
-<td width="110">$SERVICE_DESC</td>
-<td width="40" style="background-color:#13EB3A;" >$OK_TP</td>
-<td width="40" style="background-color:#13EB3A;">$OK_A</td>
-<td width="40" style="background-color:#F8C706;">$WARNING_TP</td>
-<td width="40" style="background-color:#F8C706;">$WARNING_A</td>
-<td width="40" style="background-color:#F91D05;">$CRITICAL_TP</td>
-<td width="40" style="background-color:#F91D05;">$CRITICAL_A</td>
-<td width="40" style="background-color:#DCDADA;">$UNKNOWN_TP</td>
-<td width="40" style="background-color:#DCDADA;">$UNKNOWN_A</td>
+<td width="90" align="left">$HOST_NAME</td>
+<td width="60" align="left">$SERVICE_DESC</td>
+  <td width="50" style="background-color:#13EB3A;" >$OK_TP ($OK_MP)</td>
+<td width="20" style="background-color:#13EB3A;">$OK_A</td>
+<td width="50" style="background-color:#F8C706;">$WARNING_TP ($WARNING_MP)</td>
+<td width="20" style="background-color:#F8C706;">$WARNING_A</td>
+<td width="50" style="background-color:#F91D05;">$CRITICAL_TP ($CRITICAL_MP)</td>
+<td width="20" style="background-color:#F91D05;">$CRITICAL_A</td>
+<td width="50" style="background-color:#DCDADA;">$UNKNOWN_TP ($UNKNOWN_MP)</td>
+<td width="20" style="background-color:#DCDADA;">$UNKNOWN_A</td>
 $MAINTENANCE_TP
-<td width="100" style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
+<td width="55" style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
 </tr>
 
 
 
 EOD;
 $i++;
-  }
+//  }
 }
 
 //fermeture du tableau
@@ -622,6 +653,7 @@ $tbl2 .= <<<EOD
 
 EOD;
 
+$tbl1 .= "\n <p>Total number of services = " . $i . "<p>\n";
 
 //écriture des tableaux
 $this->writeHTML($tbl1, true, false, false, false, ''); 
