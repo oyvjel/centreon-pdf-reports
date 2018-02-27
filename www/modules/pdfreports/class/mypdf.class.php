@@ -324,8 +324,8 @@ EOD;
 
 $tbl1 .= "\n <p>Total number of hosts = " . $i . "<p>\n";
 
-print $tbl1;
-print $tbl2;
+//print $tbl1;
+//print $tbl2;
 
 //$this->writeHTML($tbl, true, false, false, false, ''); 
 $this->writeHTML($tbl1, true, false, false, false, ''); 
