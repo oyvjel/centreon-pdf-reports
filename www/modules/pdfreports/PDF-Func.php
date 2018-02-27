@@ -67,10 +67,8 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		$endDate = date("d/m/Y", $time );
 		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
 		// set default header data
-		print "Header file: " . getGeneralOptInfo("pdfreports_report_header_logo");
 
 		$pdf->SetHeaderData('../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
-		print "OK";
 
 		// set header and footer fonts
 		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
