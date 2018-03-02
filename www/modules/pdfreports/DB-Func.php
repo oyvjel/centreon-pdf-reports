@@ -318,6 +318,209 @@ function getServiceGroupReport($report_id) {
 	
 }
 
+function getHGDayStat_F($id, $start_date, $end_date) {
+
+$tbl = <<<EOD
+<style>
+td#green {
+  background-image: linear-gradient(to right, rgba(0, 150, 0, 1) 0%, rgba(0, 175, 0, 1) 17%, rgba(0, 190, 0, 1) 33%, rgba(82, 210, 82, 1) 67%, rgba(131, 230, 131, 1) 83%, rgba(180, 221, 180, 1) 100%);  /* your gradient */
+  background-repeat: no-repeat;  /* don't remove */
+}
+td#red {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 255,0, 1) );  /* your gradient */
+  background-color: #ff0000;
+  background-repeat: no-repeat;  /* don't remove */
+}  
+td#up {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 255,0, 1) );  /* your gradient */
+/*  background-color: #ff0000; */
+  background-repeat: no-repeat;  /* don't remove */
+}  
+
+table {
+  border-collapse: collapse;
+}
+tr#red {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 255, 1) );  /* your gradient */
+  background-repeat: no-repeat;  /* don't remove */
+}  
+
+</style>
+
+
+<table cellspacing="0" cellpadding="1" border="0">
+<tr> <th> Day </th>
+<th width="30%"> State</th><th> Total</th><th>Total%  </th><th> Mean% </th><th>  Alerts </th></tr>
+<tr> <td rowspan="5" >2018-02-28 00:00:00 </td>
+  <td id="red" style='border-right-width:110px; background-size: 90% 100%' >UP </td><td>86400.0000</td><td>100%</td><td>100%</td><td>Row1</td></tr>
+  <tr  border="0"><td border="0">DOWN </td><td border="0">0.0000</td><td border="0">0%</td><td border="0">0%</td><td border="0">R2</td></tr>
+  <tr  border="0"><td>UNREACHABLE </td><td>0.0000</td><td>0%</td><td>0%</td><td>R3</td></tr>
+  <tr  border="0"><td>MAINTENANCE </td><td>0.0000</td><td>0%</td><td></td><td>R4</td></tr>
+  <tr><td>UNDETERMINED </td><td>0.0000</td><td>0%</td><td></td><td>R5</td></tr>
+
+<tr border="1"> <td rowspan="5" >2018-02-19 00:00:00  <br>0s;</td>
+  <td  border="0">UP </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td  border="0">DOWN </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>UNREACHABLE </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>MAINTENANCE </td><td>0.0000</td><td>0%</td><td></td><td></td></tr>
+  <tr><td>UNDETERMINED </td><td>86400.0000</td><td>100%</td><td></td><td></td></tr>
+
+<tr> <td rowspan="5" >2018-02-18 00:00:00  <br>86400s;</td>
+  <td>UP </td><td>86400.0000</td><td>100%</td><td>100%</td><td>0</td></tr>
+  <tr><td>DOWN </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>UNREACHABLE </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>MAINTENANCE </td><td>0.0000</td><td>0%</td><td></td><td></td></tr>
+  <tr><td>UNDETERMINED </td><td>0.0000</td><td>0%</td><td></td><td></td></tr>
+
+<tr> <td rowspan="5" >2018-02-17 00:00:00  <br>86400s;</td>
+  <td>UP </td><td>86400.0000</td><td>100%</td><td>100%</td><td>0</td></tr>
+  <tr><td>DOWN </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>UNREACHABLE </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>MAINTENANCE </td><td>0.0000</td><td>0%</td><td></td><td></td></tr>
+  <tr><td>UNDETERMINED </td><td>0.0000</td><td>0%</td><td></td><td></td></tr>
+
+<tr> <td rowspan="5" >2018-02-16 00:00:00  <br>50837s;</td>
+  <td>UP </td><td>50837.0000</td><td>58.84%</td><td>100%</td><td>2</td></tr>
+  <tr><td>DOWN </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>UNREACHABLE </td><td>0.0000</td><td>0%</td><td>0%</td><td>0</td></tr>
+  <tr><td>MAINTENANCE </td><td>0.0000</td><td>0%</td><td></td><td></td></tr>
+  <tr><td>UNDETERMINED </td><td>35563.0000</td><td>41.16%</td><td></td><td></td></tr>
+
+</table>
+
+							   
+EOD;
+
+return $tbl;
+
+}
+function getHGDayStat($id, $start_date, $end_date) {
+  global $pearDB;
+  global $pearDBO;
+/*
+ * getting all hosts from hostgroup
+ */
+$str = "";
+$request = "SELECT host_host_id FROM `hostgroup_relation` WHERE `hostgroup_hg_id` = '" .$id."'";
+$DBRESULT = $pearDB->query($request);
+while ($hg = $DBRESULT->fetchRow()) {
+    if ($str != "") {
+        $str .= ", ";
+    }
+    $str .= "'".$hg["host_host_id"]."'";
+}
+if ($str == "") {
+    $str = "''";
+}
+unset($hg);
+unset($DBRESULT);
+
+echo "Hostlist: $str";
+
+/*
+ * Getting hostgroup stats evolution
+ */
+#### TODO: $days_of_week = getReportDaysStr($reportTimePeriod);
+# To be compatible with Centreon getLogInDbForHost()
+
+$rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEvent`) as DOWN_A, "
+    . "sum(`UNREACHABLEnbEvent`) as UNREACHABLE_A, "
+    . "avg( `UPTimeScheduled` ) as UP_T, "
+    . "avg( `DOWNTimeScheduled` ) as DOWN_T, "
+    . "avg( `UNREACHABLETimeScheduled` ) as UNREACHABLE_T, "
+    . "avg(`UNDETERMINEDTimeScheduled`) as UNDETERMINED_T, "
+    . "avg(`MaintenanceTime`) as MAINTENANCE_T "
+    . "FROM `log_archive_host` WHERE `host_id` IN (".$str.") "
+    . "AND `date_start` >= '".$start_date."' "
+    . "AND `date_end` <= '".$end_date."' "
+    . "GROUP BY `date_end`, `date_start` ORDER BY `date_start` desc";
+
+###    . "AND DATE_FORMAT( FROM_UNIXTIME( `date_start`), '%W') IN (".$days_of_week.") ".
+
+$DBRESULT = $pearDBO->query($rq);
+
+$tbl = <<<EOD
+<style>
+td#green {
+  background-image: linear-gradient(to right, rgba(0, 150, 0, 1) 0%, rgba(0, 175, 0, 1) 17%, rgba(0, 190, 0, 1) 33%, rgba(82, 210, 82, 1) 67%, rgba(131, 230, 131, 1) 83%, rgba(180, 221, 180, 1) 100%);  /* your gradient */
+  background-color: #00ff00;
+  background-repeat: no-repeat;  /* don't remove */
+}
+td#red {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 255,0, 1) );  /* your gradient */
+  background-color: #ff0000;
+  background-repeat: no-repeat;  /* don't remove */
+}  
+td#up {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 255,0, 1) );  /* your gradient */
+/*  background-color: #ff0000; */
+  background-repeat: no-repeat;  /* don't remove */
+}  
+
+table {
+  border-collapse: collapse;
+}
+tr#red {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 255, 1) );  /* your gradient */
+  background-repeat: no-repeat;  /* don't remove */
+}  
+
+</style>
+
+EOD;
+
+
+
+$tbl .= "<table border=cellspacing=\"0\" cellpadding=\"1\" border=\"0\">\n".
+  "<tr> "  
+  ."<th > " . _("Day"). "<br>". _("Duration") ."</th>"
+  ."<th width=\"30%\"> " . _("State")."</th>"
+  //  ."<th> " . _("Duration") . "</th>"
+  ."<th> " . _("Total")."</th>"
+  ."<th>" . _("Total")."%  </th>"
+  ."<th> " . _("Mean")."% </th>"
+  ."<th>  " . _("Alerts")." </th>"
+  ."</tr>\n";
+
+while ($row = $DBRESULT->fetchRow()) {
+
+    $duration = $row["UP_T"] + $row["DOWN_T"] + $row["UNREACHABLE_T"];
+    $totaltime = $duration + $row["UNDETERMINED_T"] + $row["MAINTENANCE_T"];
+
+    echo "Duration = $duration";
+    echo "Totaltime  = $totaltime";
+
+    /* Percentage by status */
+    $row["UP_MP"] = round($row["UP_T"] * 100 / $duration, 2);
+    $row["DOWN_MP"] = round($row["DOWN_T"] * 100 / $duration, 2);
+    $row["UNREACHABLE_MP"] = round($row["UNREACHABLE_T"] * 100 / $duration, 2);
+
+    $row["UP_TP"] = round($row["UP_T"] * 100 / $totaltime, 2);
+    $row["DOWN_TP"] = round($row["DOWN_T"] * 100 / $totaltime, 2);
+    $row["UNREACHABLE_TP"] = round($row["UNREACHABLE_T"] * 100 / $totaltime, 2);
+    $row["MAINTENANCE_TP"] = round($row["MAINTENANCE_T"] * 100 / $totaltime, 2);
+    $row["UNDETERMINED_TP"] = round($row["UNDETERMINED_T"] * 100 / $totaltime, 2);
+
+    $tbl .= 
+     "<tr style='border-top: 1px solid #ccc' > "
+      . "<td rowspan=\"5\" >" . date("Y-m-d", $row["date_start"])
+      ."  <br>" . $duration."s;". "</td>\n"
+      ."  <td  id=\"green\" style='background-size: 90% 100%' >UP </td><td>" .  $row["UP_T"]."</td><td>" .  $row["UP_TP"]. "%</td><td>" .  $row["UP_MP"]. "%</td><td>" .$row["UP_A"]."</td></tr>\n"
+      ."  <tr><td>DOWN </td><td>" .  $row["DOWN_T"]."</td><td>" .  $row["DOWN_TP"]. "%</td><td>" .  $row["DOWN_MP"]. "%</td><td>" .$row["DOWN_A"]."</td></tr>\n"
+      ."  <tr><td>UNREACHABLE </td><td>" .  $row["UNREACHABLE_T"]."</td><td>" .  $row["UNREACHABLE_TP"]. "%</td><td>" .  $row["UNREACHABLE_MP"]. "%</td><td>" .$row["UNREACHABLE_A"]."</td></tr>\n"
+      ."  <tr><td>MAINTENANCE </td><td>" .  $row["MAINTENANCE_T"]."</td><td>" .  $row["MAINTENANCE_TP"]. "%</td><td> " . "</td><td>" ."</td></tr>\n"
+      ."  <tr><td>UNDETERMINED </td><td>" .  $row["UNDETERMINED_T"]."</td><td>" .  $row["UNDETERMINED_TP"]. "%</td><td>" . "</td><td>" ."</td></tr>\n"
+     ."\n";
+}
+$tbl .= "</table>\n";
+
+$DBRESULT->free();
+
+return $tbl;
+
+	
+}
+
 
 
 
@@ -525,7 +728,7 @@ function getServiceGroupReport($report_id) {
 		    //	      	    print "<pre>\n";
 		    //              print_r($stats);
 		    //              print "</pre>\n";
-		    $Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $reportinfo );
+		    $Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
 
 		    //                    print_r($Allfiles);
                 }
@@ -534,7 +737,7 @@ function getServiceGroupReport($report_id) {
                 foreach ( $services['report_sg'] as $sg_id ) {
                     $sg_stats = array();
                     $sg_stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
-                    $Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
+                    $Allfiles[] = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
                 }
             }
 	    $files = array();

@@ -24,7 +24,7 @@
 //============================================================+
 global $centreon_path;
 
-require_once  $centreon_path . "/www/modules/pdfreports/lib/tcpdf/config/lang/eng.php";
+//require_once  $centreon_path . "/www/modules/pdfreports/lib/tcpdf/config/lang/eng.php";
 require_once  $centreon_path . "/www/modules/pdfreports/lib/tcpdf/tcpdf.php";
 
 
@@ -150,7 +150,7 @@ EOD;
 //creation du tableau pour tcpdf, format html
 	
 	$tbl1 = <<<EOD
-                  <table border="0" style="text-align: center;font-size:12">
+                  <table border="0" style="text-align: center;font-size:11">
 		  <tr  style="background-color:#F7FAFF;">
 			  <td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
 			  <td colspan="4" style="background-color:#D7D6DD;" >Hosts group state</td>
@@ -213,13 +213,13 @@ EOD;
 //init du deuxième tableau
 
 if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
-  $MAINTENANCE_HEADER = '<td  width="60">Schedule Downtime</td>';
-  $MAINTENANCE_HEADER_LABEL = '<td width="60">%</td>';
-  $HEADER_WIDTH = "520";
+  $MAINTENANCE_HEADER = '<td  width="10%">Schedule Downtime</td>';
+  $MAINTENANCE_HEADER_LABEL = '<td width="10%">%</td>';
+  $HEADER_WIDTH = "590";
 } else {
    $MAINTENANCE_HEADER = "";
    $MAINTENANCE_HEADER_LABEL = "";
-   $HEADER_WIDTH = "590";
+   $HEADER_WIDTH = "520";
 }
 
 
@@ -228,27 +228,27 @@ $tbl2 = <<<EOD
 
 <table border="0" style="text-align: center;font-size:9">
 	<tr style="background-color:#D7D6DC;">
-	  <td colspan="9" width="$HEADER_WIDTH">State Breakdowns For Hosts</td>
+	  <td colspan="9" width="100%">State Breakdowns For Hosts</td>
 	</tr>
 	<tr style="background-color:#D5DFEB;">
-	    <td colspan="1" width="130"></td>
-	    <td colspan="2" width="90">Up</td>
-	    <td colspan="2" width="90">Down</td>
-	    <td colspan="2" width="90">Unreachable</td>
+	    <td colspan="1" width="20%"></td>
+	    <td colspan="2" width="20%">Up</td>
+	    <td colspan="2" width="20%">Down</td>
+	    <td colspan="2" width="20%">Unreachable</td>
 	    $MAINTENANCE_HEADER 
-	    <td width="60">Undetermined</td>
+	    <td width="10%">Undetermined</td>
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
-	    <td width="130">Host</td>
-	    <td width="60">%</td>
-	    <td width="30">Alert</td>
-	    <td width="60">%</td>
-	    <td width="30">Alert</td>
-	    <td width="60">%</td>
-	    <td width="30">Alert</td>
+	    <td width="20%">Host</td>
+	    <td width="15%">%</td>
+	    <td width="5%">Alert</td>
+	    <td width="15%">%</td>
+	    <td width="5%">Alert</td>
+	    <td width="15%">%</td>
+	    <td width="5%">Alert</td>
 	    $MAINTENANCE_HEADER_LABEL
-	    <td width="60">%</td>
+	    <td width="10%">%</td>
 	</tr>
 		    
 
@@ -286,7 +286,7 @@ $UNREACHABLE_TP = $tab["UNREACHABLE_TP"];
 $UNREACHABLE_MP = $tab["UNREACHABLE_MP"];
 $UNREACHABLE_A = $tab["UNREACHABLE_A"];
 if (isset ($tab["MAINTENANCE_TP"])) {
-  $MAINTENANCE_TP =  '<td width="60" style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
+  $MAINTENANCE_TP =  '<td width="10%" style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
   
 } else {
   $MAINTENANCE_TP = "";
@@ -298,15 +298,15 @@ $BACKGROUND_COLOR = ( $i % 2 ? "EDF4FF": "F7FAFF");
 $tbl2 .= <<<EOD
 
 <tr style="background-color:#$BACKGROUND_COLOR;">
-<td width="130" align="left">$NAME</td>
-<td width="60" style="background-color:#13EB3A;">$UP_TP ($UP_MP)</td>
-<td width="30" style="background-color:#13EB3A;">$UP_A</td>
-<td width="60" style="background-color:#F91D05;">$DOWN_TP  ($DOWN_MP)</td>
-<td width="30" style="background-color:#F91D05;">$DOWN_A</td>
-<td width="60" style="background-color:#82CFD8;">$UNREACHABLE_TP ($UNREACHABLE_MP)</td>
-<td width="30" style="background-color:#82CFD8;">$UNREACHABLE_A</td>
+<td width="20%" align="left">$NAME</td>
+<td width="15%" style="background-color:#13EB3A;">$UP_TP ($UP_MP)</td>
+<td width="5%" style="background-color:#13EB3A;">$UP_A</td>
+<td width="15%" style="background-color:#F91D05;">$DOWN_TP  ($DOWN_MP)</td>
+<td width="5%" style="background-color:#F91D05;">$DOWN_A</td>
+<td width="15%" style="background-color:#82CFD8;">$UNREACHABLE_TP ($UNREACHABLE_MP)</td>
+<td width="5%" style="background-color:#82CFD8;">$UNREACHABLE_A</td>
 $MAINTENANCE_TP
-<td width="60" style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
+<td width="10%" style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
 </tr>
 
 

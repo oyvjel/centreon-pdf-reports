@@ -38,10 +38,16 @@ function init_pdf_header() {
 }
 
 //function pdfGen($group_name, $start_date, $end_date,$stats,$l,$logo_header, $chart_img){
-function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
+function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		global $centreon_path;
 
-		define ('PDF_PAGE_ORIENTATION', 'P');
+		
+		if ($mode == "hgs") { // Hostgroup
+		  $group_name = getMyHostGroupName($gid);
+		} else if ($mode == "sgs") { // Servicegroup
+		  $group_name = getMyServiceGroupName($gid);
+		}
+		//		define ('PDF_PAGE_ORIENTATION', 'P');
 		
 		// create new PDF document
 #		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -68,7 +74,9 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
 		// set default header data
 		
-		$pdf->SetHeaderData('../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+		//		$pdf->SetHeaderData('../../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+	       		$pdf->SetHeaderData('../../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+		//		$pdf->SetHeaderData( getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
 
 		// set header and footer fonts
 		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
@@ -116,6 +124,18 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		//$pdf->ColoredTable($header, $data,$chart_img);
 		if ($mode == "hgs") { // Hostgroup
 			$pdf->ColoredTable($header, $data,$piechart_img );
+			print "<pre>";
+			$daytable = getHGDayStat($gid, $start_date, $end_date);
+			print "</pre>";
+			print " $daytable";
+
+			$myfile = fopen("/var/www/reports/test/daytable.html", "w") or die("Unable to open file!");
+			fwrite($myfile, $daytable);
+			fclose($myfile);
+
+			$pdf->writeHTML("<H1>Tidslinje</H1", true, false, false, false, ''); 
+			$pdf->writeHTML($daytable, true, false, false, false, ''); 
+
 		} else if ($mode == "sgs") { // Servicegroup
 			$pdf->ServicesColoredTable($header, $data,$piechart_img);
 		}
