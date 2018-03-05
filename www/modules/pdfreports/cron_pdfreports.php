@@ -146,7 +146,7 @@
 				
 				//print_r($stats);
 				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( getMyHostGroupName($hgs_id), 'hgs', $start_date, $end_date, $stats, $reportinfo );
+				$Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
 				
 				//print_r($Allfiles); 
 			}
@@ -161,7 +161,7 @@
 				//print_r($stats);				
 
 				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( getMyServiceGroupName($sg_id), 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );				
+				$Allfiles[] = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );				
 				//print_r($Allfiles); 
 			}
 		}

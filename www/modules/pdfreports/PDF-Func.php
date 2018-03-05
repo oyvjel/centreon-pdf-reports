@@ -38,10 +38,18 @@ function init_pdf_header() {
 }
 
 //function pdfGen($group_name, $start_date, $end_date,$stats,$l,$logo_header, $chart_img){
-function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
+function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		global $centreon_path;
+#		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
+		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
 
-		define ('PDF_PAGE_ORIENTATION', 'P');
+		
+		if ($mode == "hgs") { // Hostgroup
+		  $group_name = getMyHostGroupName($gid);
+		} else if ($mode == "sgs") { // Servicegroup
+		  $group_name = getMyServiceGroupName($gid);
+		}
+		//		define ('PDF_PAGE_ORIENTATION', 'P');
 		
 		// create new PDF document
 #		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -64,11 +72,13 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		//$ip = $_SERVER['HOSTNAME'];
 		$startDate = date("d/m/Y", $start_date);
 		$time = time();
-		$endDate = date("d/m/Y", $time );
+		$endDate = date("d/m/Y", $end_date);
 		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
 		// set default header data
-
-		$pdf->SetHeaderData('../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+		
+		//		$pdf->SetHeaderData('../../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+		$pdf->SetHeaderData('../../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+		//		$pdf->SetHeaderData( getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
 
 		// set header and footer fonts
 		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
@@ -107,7 +117,7 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		$header = array('Status', 'Time', 'Total Time', 'Mean Time', 'Alert');
 
 		// Pie chart Generation
-		$piechart_img = pieGen($stats,$mode);
+		$piechart_img = pieGen($stats,$mode,$pdfDirName);
 				
 		//Data loading
 		$data = $pdf->LoadData($stats);
@@ -116,6 +126,19 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		//$pdf->ColoredTable($header, $data,$chart_img);
 		if ($mode == "hgs") { // Hostgroup
 			$pdf->ColoredTable($header, $data,$piechart_img );
+//			print "<pre>";
+//			print "Chartfile = $piechart_img\n";
+			$daytable = getHGDayStat($gid, $start_date, $end_date);
+//			print "</pre>";
+//			print " $daytable";
+
+//			$myfile = fopen("/var/www/reports/test/daytable.html", "w") or die("Unable to open file!");
+//			fwrite($myfile, $daytable);
+//			fclose($myfile);
+
+			$pdf->writeHTML("<H1>Tidslinje</H1", true, false, false, false, ''); 
+			$pdf->writeHTML($daytable, true, false, false, false, ''); 
+
 		} else if ($mode == "sgs") { // Servicegroup
 			$pdf->ServicesColoredTable($header, $data,$piechart_img);
 		}
@@ -127,8 +150,6 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 		$endDay = date("d", $time);
 		$endYear = date("Y", $time);
 		$endMonth = date("m", $time);
-#		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
-		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
 		$pdfFileName =  $pdfDirName .$endYear."-".$endMonth."-".$endDay."_".$group_name.".pdf";
 		
 		if (!is_dir($pdfDirName))
@@ -145,7 +166,7 @@ function pdfGen($group_name, $mode = NULL, $start_date, $end_date,$stats,$report
 /*
 * Including pie chart in report (like dashboard)
 */
-function pieGen($stats, $mode) {
+function pieGen($stats, $mode,$Dir) {
 	
 	global $centreon_path;
 	// Create and populate the pData object 
@@ -276,15 +297,18 @@ function pieGen($stats, $mode) {
 	// $myPicture->setShadow(TRUE,array("X"=>3,"Y"=>3,"R"=>0,"G"=>0,"B"=>0,"Alpha"=>10));
 	
 	 // Draw a splitted pie chart 
-	 $PieChart->draw3DPie(60,70,array("Radius"=>50,"DataGapAngle"=>8,"DataGapRadius"=>6,"Border"=>TRUE,"BorderR"=>0,"BorderG"=>0,"BorderB"=>0));
+	//	 $PieChart->draw3DPie(60,70,array("Radius"=>50,"DataGapAngle"=>8,"DataGapRadius"=>6,"Border"=>TRUE,"BorderR"=>0,"BorderG"=>0,"BorderB"=>0));
+	$PieChart->draw2DPie(60,60,array("Radius"=>50,"DrawLabels"=>FALSE,"LabelStacked"=>TRUE,"Border"=>FALSE,"BorderR"=>0,"BorderG"=>0,"BorderB"=>0));
 
 	 /* Render the picture  */
 	 
-	$pie_file = tempnam( "/tmp" , "reportreon_pie_" );
+
+	//	$pie_file = tempnam( "/tmp" , "reportreon_pie_" );
+	$pie_file = tempnam($Dir, "reportreon_pie_" );
 //	$pie_file = tempnam( $centreon_path . "/www/modules/pdfreports/generatedFiles/tmp" , "reportreon_pie_" );
-	
+
 	$myPicture->render($pie_file . ".png");
-	@unlink($pie_file );
+	       	@unlink($pie_file );
 
 	return  $pie_file  . ".png" ;
 }
