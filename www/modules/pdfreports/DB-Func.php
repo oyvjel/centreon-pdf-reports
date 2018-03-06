@@ -321,26 +321,49 @@ function getServiceGroupReport($report_id) {
 function getHGDayStat($id, $start_date, $end_date) {
   global $pearDB;
   global $pearDBO;
+  global $oreon;
+
+  $i = 0;
+
 /*
  * getting all hosts from hostgroup
  */
+/*
 $str = "";
 $request = "SELECT host_host_id FROM `hostgroup_relation` WHERE `hostgroup_hg_id` = '" .$id."'";
 $DBRESULT = $pearDB->query($request);
+$i = 0;
 while ($hg = $DBRESULT->fetchRow()) {
     if ($str != "") {
         $str .= ", ";
     }
     $str .= "'".$hg["host_host_id"]."'";
+    $i++;
 }
 if ($str == "") {
     $str = "''";
 }
 unset($hg);
 unset($DBRESULT);
+*/
+$hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
+if (count($hosts_id) == 0) {
+  return 'No hosts in group';
+}
+$str = "";
+foreach ($hosts_id as $hostId => $host_name) {
+  //  $host_stats = getLogInDbForHost($hostId, $start_date, $end_date, $reportTimePeriod);
+  if ($str != "") {
+    $str .= ", ";
+  }
+  $str .= "'". $hostId ."'";
+  $i++;
+}
+      
 
+//echo "Number of hosts in group = $i";
 //echo "Hostlist: $str";
-
+//echo "Start date $start_date";
 /*
  * Getting hostgroup stats evolution
  */
@@ -361,10 +384,38 @@ $rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEve
 
 ###    . "AND DATE_FORMAT( FROM_UNIXTIME( `date_start`), '%W') IN (".$days_of_week.") ".
 
+echo "rq = $rq"; 
+
 $DBRESULT = $pearDBO->query($rq);
 
 $tbl = <<<EOD
 <style>
+table, td  {
+  border-collapse: collapse;
+  font-size:9;
+  border-spacing:10px;
+}
+
+td {
+  padding:1
+  text-align: left;
+}
+
+th {  
+  padding: 1;
+  text-align: left;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+tr.even {background-color: #EDF4FF;}
+tr.odd {background-color: #F7FAFF;}
+
+tr.day {
+  border-top: 3px solid black;
+  background-color:#D7D6DD;
+}
+
 td#green {
   background-image: linear-gradient(to right, rgba(0, 150, 0, 1) 0%, rgba(0, 175, 0, 1) 17%, rgba(0, 190, 0, 1) 33%, rgba(82, 210, 82, 1) 67%, rgba(131, 230, 131, 1) 83%, rgba(180, 221, 180, 1) 100%);  /* your gradient */
   background-color: #00ff00;
@@ -381,9 +432,6 @@ td#up {
   background-repeat: no-repeat;  /* don't remove */
 }  
 
-table {
-  border-collapse: collapse;
-}
 tr#red {
   background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 255, 1) );  /* your gradient */
   background-repeat: no-repeat;  /* don't remove */
@@ -430,19 +478,19 @@ while ($row = $DBRESULT->fetchRow()) {
     $row["UNDETERMINED_TP"] = round($row["UNDETERMINED_T"] * 100 / $totaltime, 2);
 
     $tbl .= 
-     "<tr style='border-top: 1px solid #ccc' > "
+     "<tr class=\"day\"> "
       . "<td rowspan=\"5\" >" . date("Y-m-d", $row["date_start"])
       ."  <br>" . $duration."s;". "</td>\n"
       //      ."  <td  id=\"green\" style='background-size: 90% 100%' > UP
       ."  <td> UP </td><td>" . '<img src="'.$img.'/1x1-19ee11ff.png" width="'.round($row["UP_TP"]+0.001,3).'" height="10"></td><td>'
       .  round($row["UP_T"],0)."</td><td>" .  $row["UP_TP"]. "%</td><td>" .  $row["UP_MP"]. "%</td><td>" .$row["UP_A"]."</td></tr>\n"
-      ."  <tr><td>DOWN </td><td>". '<img src="'.$img.'/1x1-f91e05ff.png" width="'.round($row["DOWN_TP"]+0.001,3).'" height="10"></td><td>' 
+      ."  <tr class=\"even\"><td>DOWN </td><td>". '<img src="'.$img.'/1x1-f91e05ff.png" width="'.round($row["DOWN_TP"]+0.001,3).'" height="10"></td><td>' 
       .  round($row["DOWN_T"],0)."</td><td>" .  $row["DOWN_TP"]. "%</td><td>" .  $row["DOWN_MP"]. "%</td><td>" .$row["DOWN_A"]."</td></tr>\n"
-      ."  <tr><td>UNREACHABLE </td><td>" . '<img src="'.$img.'/1x1-82cfd8ff.png" width="'.round($row["UNREACHABLE_TP"]+0.001,3).'" height="10"></td><td>' 
+      ."  <tr class=\"odd\"><td>UNREACHABLE </td><td>" . '<img src="'.$img.'/1x1-82cfd8ff.png" width="'.round($row["UNREACHABLE_TP"]+0.001,3).'" height="10"></td><td>' 
       .  round($row["UNREACHABLE_T"],0)."</td><td>" .  $row["UNREACHABLE_TP"]. "%</td><td>" .  $row["UNREACHABLE_MP"]. "%</td><td>" .$row["UNREACHABLE_A"]."</td></tr>\n"
-      ."  <tr><td>MAINTENANCE </td><td>". '<img src="'.$img.'/1x1-cc99ffff.png" width="'.round($row["MAINTENANCE_TP"]+0.001,3).'" height="10"></td><td>' 
+      ."  <tr class=\"even\"><td>MAINTENANCE </td><td>". '<img src="'.$img.'/1x1-cc99ffff.png" width="'.round($row["MAINTENANCE_TP"]+0.001,3).'" height="10"></td><td>' 
       .  round($row["MAINTENANCE_T"],0)."</td><td>" .  $row["MAINTENANCE_TP"]. "%</td><td> " . "</td><td>" ."</td></tr>\n"
-      ."  <tr><td>UNDETERMINED </td><td>" . '<img src="'.$img.'/1x1-ccf8ffff.png" width="'.round($row["UNDETERMINED_TP"]+0.001,3).'" height="10"></td><td>' 
+      ."  <tr class=\"odd\"><td>UNDETERMINED </td><td>" . '<img src="'.$img.'/1x1-ccf8ffff.png" width="'.round($row["UNDETERMINED_TP"]+0.001,3).'" height="10"></td><td>' 
       .  round($row["UNDETERMINED_T"],0)."</td><td>" .  $row["UNDETERMINED_TP"]. "%</td><td>" . "</td><td>" ."</td></tr>\n"
      ."\n";
 }

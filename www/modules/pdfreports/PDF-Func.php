@@ -34,6 +34,7 @@ function init_pdf_header() {
 //define ('K_TCPDF_EXTERNAL_CONFIG', true);
 
 //define ('PDF_HEADER_LOGO', "../../../img/header/centreon.gif");    
+define ('PDF_HEADER_LOGO_WIDTH', 30);
   
 }
 
@@ -74,11 +75,6 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		$time = time();
 		$endDate = date("d/m/Y", $end_date);
 		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
-		// set default header data
-		
-		//		$pdf->SetHeaderData('../../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
-		$pdf->SetHeaderData('../../../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
-		//		$pdf->SetHeaderData( getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
 
 		// set header and footer fonts
 		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
@@ -109,6 +105,11 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		// set font
 		$pdf->SetFont('helvetica', '', 12);
 
+		// set default header data
+		
+		//       	$pdf->SetHeaderData('../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
+       	$pdf->SetHeaderData('../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") ,60, $header,$string);
+
 		// add a page
 		$pdf->AddPage();
 		$pdf->writeHTML($reportinfo["report_comment"] ); 
@@ -126,10 +127,10 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		//$pdf->ColoredTable($header, $data,$chart_img);
 		if ($mode == "hgs") { // Hostgroup
 			$pdf->ColoredTable($header, $data,$piechart_img );
-//			print "<pre>";
+			print "<pre>";
 //			print "Chartfile = $piechart_img\n";
 			$daytable = getHGDayStat($gid, $start_date, $end_date);
-//			print "</pre>";
+			print "</pre>";
 //			print " $daytable";
 
 //			$myfile = fopen("/var/www/reports/test/daytable.html", "w") or die("Unable to open file!");

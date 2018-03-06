@@ -255,9 +255,12 @@ $tbl2 = <<<EOD
 EOD;
 
 unset($data['average']);
+$data = array_values($data);
 
 usort($data, function($a, $b) {
-    return $a['UP_MP'] - $b['UP_MP'];
+    if ($a['UP_MP']==$b['UP_MP']) return 0;
+    return ($a['UP_MP']<$b['UP_MP'])?-1:1;
+    //    return $a['UP_MP'] - $b['UP_MP'];
   });
 
 //print "<pre>\n After SORT: \n";
@@ -331,7 +334,7 @@ $tbl1 .= "\n <p>Total number of hosts = " . $i . "<p>\n";
 $this->writeHTML($tbl1, true, false, false, false, ''); 
 $this->writeHTML($tbl2, true, false, false, false, '');
 
-// @unlink($piechart_img) ;
+@unlink($piechart_img) ;
 
 }
 
@@ -584,11 +587,12 @@ EOD;
 
 
 unset($data['average']);
+$data = array_values($data);
 
 usort($data, function($a, $b) {
-    return $a['OK_MP'] - $b['OK_MP'];
+    if ($a['OK_MP']==$b['OK_MP']) return 0;
+    return ($a['OK_MP']<$b['OK_MP'])?-1:1;
   });
-
 
 
 //parsing des services du service group et ajout dans tableau
