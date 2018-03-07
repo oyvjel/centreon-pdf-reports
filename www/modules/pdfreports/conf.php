@@ -17,6 +17,7 @@
  *   - Charles Judith 
  *   - Olivier LI KIANG CHEONG
  *   - Linagora
+ *   - Øyvind Jelstad
  */
  
 // Be Carefull with internal_name, it's case sensitive (with directory module name)

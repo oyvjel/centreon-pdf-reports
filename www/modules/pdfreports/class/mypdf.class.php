@@ -17,6 +17,7 @@
  *   - Charles Judith 
  *   - Olivier LI KIANG CHEONG
  *   - Linagora
+ *   - Øyvind Jelstad
  */
 
 //============================================================+
@@ -543,8 +544,8 @@ EOD;
 //init du deuxième tableau
 
 if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
-  $MAINTENANCE_HEADER = '<td width="7%" >NoSLA</td>';
-  $MAINTENANCE_HEADER_LABEL = '<td width="7%">%</td>';
+  $MAINTENANCE_HEADER = '<th width="6%" >NoSLA</th>';
+  $MAINTENANCE_HEADER_LABEL = '<th width="6%">%</th>';
   $HEADER_WIDTH = "12";
 } else {
    $MAINTENANCE_HEADER = "";
@@ -552,36 +553,85 @@ if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
    $HEADER_WIDTH = "11";
 }
 
-
 $tbl2 = <<<EOD
+<style>
+table, td  {
+  border-collapse: collapse;
+  font-size:7;
+  border-spacing:0px;
 
-<table border="0" align="center" valign="middle" style="font-size:8;">
+}
+
+td {
+  padding:1
+  text-align: left;
+}
+
+th {  
+  padding: 0;
+  text-align: left;
+  font-size: 9px;
+  font-weight: bold;
+}
+
+tr.even {background-color: #EDF4FF;}
+tr.odd {background-color: #F7FAFF;}
+
+tr.day {
+  border-top: 3px solid black;
+  background-color:#D7D6DD;
+}
+
+td#green {
+  background-image: linear-gradient(to right, rgba(0, 150, 0, 1) 0%, rgba(0, 175, 0, 1) 17%, rgba(0, 190, 0, 1) 33%, rgba(82, 210, 82, 1) 67%, rgba(131, 230, 131, 1) 83%, rgba(180, 221, 180, 1) 100%);  /* your gradient */
+  background-color: #00ff00;
+  background-repeat: no-repeat;  /* don't remove */
+}
+td#red {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 255,0, 1) );  /* your gradient */
+  background-color: #ff0000;
+  background-repeat: no-repeat;  /* don't remove */
+}  
+td#up {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 255,0, 1) );  /* your gradient */
+/*  background-color: #ff0000; */
+  background-repeat: no-repeat;  /* don't remove */
+}  
+
+tr#red {
+  background-image: linear-gradient(to right, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 255, 1) );  /* your gradient */
+  background-repeat: no-repeat;  /* don't remove */
+}  
+
+</style>
+
+<table>
 	<tr>
-	<td width="100%" colspan="$HEADER_WIDTH" style="background-color:#D7D6DD;" >State Breakdowns For Host Services</td>
+	<th width="100%" colspan="$HEADER_WIDTH" style="background-color:#D7D6DD;" >State Breakdowns For Host Services</th>
 	</tr>
 	<tr style="background-color:#D5DFEB;" >
-		<td colspan="2" width="26%"  ></td>
-		<td colspan="2" width="15%" >OK</td>
-		<td colspan="2" width="15%" >Warning</td>
-		<td colspan="2" width="15%" >Critical</td>
-		<td colspan="2" width="15%" >Unknown</td>
+		<th colspan="2" width="36%"  ></th>
+		<th colspan="2" width="13%" >OK</th>
+		<th colspan="2" width="13%" >Warning</th>
+		<th colspan="2" width="13%" >Critical</th>
+		<th colspan="2" width="13%" >Unknown</th>
 		$MAINTENANCE_HEADER
-		<td width="7%" >Undef</td>
+		<th width="6%" >Undef</th>
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
-		<td width="16%" >Host Name</td>
-		<td width="10%">Service</td>
-		<td width="12%">%</td>
-		<td width="3%">Al</td>
-		<td width="12%">%</td>
-		<td width="3%">Al</td>
-		<td width="12%">%</td>
-		<td width="3%">Al</td>
-		<td width="12%">%</td>
-		<td width="3%">Al</td>
+		<th width="16%" >Host Name</th>
+		<th width="20%">Service</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
 		$MAINTENANCE_HEADER_LABEL
-		<td width="7%">%</td>
+		<th width="6%">%</th>
 	</tr>
 EOD;
 

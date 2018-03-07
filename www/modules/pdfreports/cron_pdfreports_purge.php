@@ -17,6 +17,7 @@
  *   - Charles Judith 
  *   - Olivier LI KIANG CHEONG
  *   - Linagora
+ *   - Øyvind Jelstad
  */
 
 //ini_set('display_errors',1);

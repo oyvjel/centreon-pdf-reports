@@ -17,6 +17,7 @@
  *   - Charles Judith 
  *   - Olivier LI KIANG CHEONG
  *   - Linagora
+ *   - Øyvind Jelstad
  */
 
 function mailer($fromname,$from,$to,$subject,$body,$server, $files, $name) {

@@ -182,9 +182,13 @@ function install_module() {
     /bin/cp -Rf --preserve $TEMP_D/www/* $INSTALL_DIR_CENTREON/www >> $LOG_FILE 2>> $LOG_FILE
 
 	echo_success "Copying cron file" "$ok"
-	/bin/cp -Rf --preserve $TEMP_D/www/modules/pdfreports/files/pdfreports /etc/cron.d/pdfreports >> $LOG_FILE 2>> $LOG_FILE
-	/bin/chown -R root.root /etc/cron.d/pdfreports >> $LOG_FILE 2>> $LOG_FILE
-	/bin/chmod -R 644 /etc/cron.d/pdfreports >> $LOG_FILE 2>> $LOG_FILE		
+	if [ ! -f /etc/cron.d/pdfreports ]; then
+	    /bin/cp -Rf --preserve $TEMP_D/www/modules/pdfreports/files/pdfreports /etc/cron.d/pdfreports >> $LOG_FILE 2>> $LOG_FILE
+	    sed -i 's/\$CRONTAB_EXEC_USER/apache/' /etc/cron.d/pdfreports
+	    /bin/chown -R root.root /etc/cron.d/pdfreports >> $LOG_FILE 2>> $LOG_FILE
+	    /bin/chmod -R 644 /etc/cron.d/pdfreports >> $LOG_FILE 2>> $LOG_FILE
+	fi
+
 
 	echo_success "Delete temp install directory" "$ok"
 	/bin/rm -Rf $TEMP_D $TEMP >> $LOG_FILE 2>> $LOG_FILE
