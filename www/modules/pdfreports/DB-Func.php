@@ -108,7 +108,8 @@ function getGeneralOptInfo($option_name)	{
 	
 	//reprise de la fonction getPeriodToReport de www/include/reporting/dashboard/common-Func.php pour retourner un timestamp sans $_POST
 function getPeriodToReportFork($arg) {	
-		$interval = getDateSelect_predefined($arg);
+                $interval = getDateSelectPredefined($arg);
+		//		$interval = getDateSelect_predefined($arg);
 		$start_date = $interval[0];
 		$end_date = $interval[1];
 		return(array($start_date,$end_date));
@@ -322,7 +323,8 @@ function getServiceGroupReport($report_id) {
 function getHGDayStat($id, $start_date, $end_date) {
   global $pearDB;
   global $pearDBO;
-  global $oreon;
+  //  global $oreon;
+  global $centreon;
 
   $i = 0;
 
@@ -347,7 +349,7 @@ if ($str == "") {
 unset($hg);
 unset($DBRESULT);
 */
-$hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
+$hosts_id = $centreon->user->access->getHostHostGroupAclConf($id, 'broker');
 if (count($hosts_id) == 0) {
   return 'No hosts in group';
 }
