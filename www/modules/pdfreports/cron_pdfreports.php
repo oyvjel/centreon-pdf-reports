@@ -134,24 +134,31 @@
 			$dates = getPeriodToReportFork($reportinfo['period']);
 			$start_date = $dates[0] ;
 			$end_date = $dates[1];
-			
+			$category = $reportinfo["service_category"];
 			$reportingTimePeriod = getreportingTimePeriod();
 			
 			// Generate hostgroup reports			
 			
 			if (isset($hosts) && count($hosts) > 0) {
-			foreach ( $hosts['report_hgs'] as $hgs_id ) {      
+			  foreach ( $hosts['report_hgs'] as $hgs_id ) {      
 		
-				$stats = array();
-				$stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
-				
-				//print_r($stats);
-				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
-				
-				//print_r($Allfiles); 
+			    $stats = array();
+			    $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
+			    
+			    //print_r($stats);
+			    //tableau contenant la liste des pdf générés
+			    $Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+			  }
+			    
+			  //print_r($Allfiles);
+			  // Services for hosts in hostgrp:
+			  if (is_numeric ($category) ) {
+			    $stats = array();
+			    $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
+			    $Allfiles[] = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+			  }
+			  
 			}
-		}
 			// Generate servicegroup reports
 		if (isset( $services ) && count($services) > 0 ) {			
 			foreach ( $services['report_sg'] as $sg_id ) {      

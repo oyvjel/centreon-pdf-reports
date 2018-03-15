@@ -29,13 +29,14 @@ CREATE TABLE IF NOT EXISTS `pdfreports_reports` (
   `report_title` varchar(254) default NULL, 
   `subject` varchar(254) default NULL,
   `mail_body` varchar(254) default NULL,
+  `service_category` int(11) default NULL,
   `retention` int(11) default NULL,
   `report_comment` text,
   `activate` enum('0','1') default NULL,
   PRIMARY KEY  (`report_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
-
+-- alter table  pdfreports_reports add column `service_category` int(11) default NULL;
 
 -- --------------------------------------------------------
 

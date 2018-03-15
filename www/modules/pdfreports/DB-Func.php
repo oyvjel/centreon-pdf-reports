@@ -238,7 +238,7 @@ function getReportInfo($report_id = NULL) {
 	# Set base value
 	$report_info = array_map("myDecodeReport", $DBRESULT->fetchRow());
 	$DBRESULT->free();	
-	//print_r($report_info);
+	//	print_r($report_info);
 	return $report_info;
 	
 	
@@ -318,6 +318,155 @@ function getServiceGroupReport($report_id) {
 	return $services;
 	
 }
+///////////////////////////////////////////////////////////////////////
+function getSqlForHostgrpServices($hostgrp_id){
+  // $hostgrp_id identifies the hostgroup of the hosts to include. 
+  $sql = "
+-- Services assigned via hostgroup memberships (hg2):
+  SELECT host.host_name, host.host_id,
+    service.service_description, service.service_id, 
+    hg.hg_name AS Parent, hg2.hg_name
+  FROM  hostgroup AS hg
+    JOIN hostgroup_relation AS hgr ON  hg.hg_id = hgr.hostgroup_hg_id
+    JOIN host ON hgr.host_host_id = host.host_id
+    JOIN hostgroup_relation AS hgr2 ON host.host_id = hgr2.host_host_id
+    JOIN hostgroup AS hg2 ON hgr2.hostgroup_hg_id = hg2.hg_id
+    JOIN host_service_relation as hsr ON hsr.hostgroup_hg_id = hg2.hg_id 
+    JOIN service ON service.service_id = hsr.service_service_id 
+    WHERE service.service_activate='1' AND host.host_activate='1'  
+    AND hg.hg_id ='" . CentreonDB::escape($hostgrp_id) . "' 
+
+-- and we need the host assigned services:
+  UNION
+  SELECT host.host_name, host.host_id,
+    service.service_description, service.service_id, 
+    hg.hg_name AS Parent, ''
+  FROM  hostgroup AS hg
+    JOIN hostgroup_relation AS hgr ON  hg.hg_id = hgr.hostgroup_hg_id
+    JOIN host ON hgr.host_host_id = host.host_id
+    JOIN host_service_relation as hsr ON hsr.host_host_id = host.host_id 
+    JOIN service ON service.service_id = hsr.service_service_id 
+    WHERE service.service_activate='1' AND host.host_activate='1'
+    AND hg.hg_id ='" . CentreonDB::escape($hostgrp_id) . "'"; 
+  return $sql;
+}
+
+/*
+ * Return a table ($serviceGroupStats) that contains availability (average with availability of all services from servicegroup)
+ * and alerts (the sum of alerts of all services from servicegroup) for given servicegroup defined by $servicegroup_id
+ */
+function getLogInDbForHostgrpServices($hostgrp_id, $start_date, $end_date, $reportTimePeriod,$category=NULL){
+  global $pearDB;
+#  $category = 6;  //TODO: HARDCODED, SHOULD BE READ FROM REPORT CONFIG.
+  $serviceStatsLabels = array();
+  $serviceStatsLabels = getServicesStatsValueName();
+  $status = array("OK", "WARNING", "CRITICAL", "UNKNOWN", "UNDETERMINED", "MAINTENANCE");
+  /* Initialising hostgroup stats to 0 */
+  foreach ($serviceStatsLabels as $name)
+    $serviceStats["average"][$name] = 0;
+  
+  // 
+  
+  
+  /* $count count the number of services in servicegroup */
+  $count = 0;
+  //	$services = getServiceGroupActivateServices($servicegroup_id);
+  
+// Get all services for hosts in hostgroup where servvice match some criteria. Category is not present in Centreon_storage. 
+// In Centreon: service.host_id, service.service_id where hosts_hostgroups.hostgroup_id=HG and service->category=??? 
+
+  $query = "
+SELECT service_description, service_id, host_id, host_name
+FROM (" 
+  . getSqlForHostgrpServices($hostgrp_id) . "
+) as hgs";
+  if ( isset($category) and $category > 0){
+    $query .= "
+  JOIN service_categories_relation as cat ON cat.service_service_id = hgs.service_id
+  WHERE cat.sc_id = '". $category ."'";
+  }
+
+  $query .= "
+ORDER BY host_name, hg_name, service_description;";
+
+  //    print $query;
+
+  $DBRESULT = $pearDB->query($query);
+
+  while ($row = $DBRESULT->fetchRow()) {
+    //foreach ($services as $host_service_id => $host_service_name) {
+    foreach ($serviceStatsLabels as $name) {
+      $serviceStats[$count][$name] = 0;
+    }
+    $Stats = array();
+    $Stats = getLogInDbForOneSVC($row['host_id'], $row['service_id'], $start_date, $end_date, $reportTimePeriod);
+    
+    if (isset($Stats)) {
+      $serviceStats[$count] = $Stats;
+      $serviceStats[$count]["HOST_ID"] = $row['host_id'];
+      $serviceStats[$count]["SERVICE_ID"] = $row['service_id'];
+      $serviceStats[$count]["HOST_NAME"] = $row['host_name'];
+      $serviceStats[$count]["SERVICE_DESC"] = $row['service_description'];
+      foreach ($serviceStatsLabels as $name)
+	$serviceStats["average"][$name] += $Stats[$name];
+    }
+    $count++;
+  }
+  $DBRESULT->free();
+  
+  /*
+   * Average time for all status (OK, Critical, Warning, Unknown)
+   */
+  foreach ($serviceStatsLabels as $name) {
+    if ($name == "OK_T" || $name == "WARNING_T" || $name == "CRITICAL_T"
+	|| $name == "UNKNOWN_T" || $name == "UNDETERMINED_T" || $name == "MAINTENANCE_T")
+      if ($count)
+	$serviceStats["average"][$name] /= $count;
+      else
+	$serviceStats["average"][$name] = 0;
+  }
+  
+  /*
+   * Calculate percentage of time (_TP => Total time percentage) for each status
+   */
+  $serviceStats["average"]["TOTAL_TIME"] = $serviceStats["average"]["OK_T"] +  $serviceStats["average"]["WARNING_T"]
+    +  $serviceStats["average"]["CRITICAL_T"] +  $serviceStats["average"]["UNKNOWN_T"]
+    +  $serviceStats["average"]["UNDETERMINED_T"] + $serviceStats["average"]["MAINTENANCE_T"];
+  
+  $time = $serviceStats["average"]["TOTAL_TIME"];
+  foreach ($status as $key => $value) {
+    if ($time)
+      $serviceStats["average"][$value."_TP"] = round($serviceStats["average"][$value."_T"] / $time * 100, 2);
+    else
+      $serviceStats["average"][$value."_TP"] = 0;
+  }
+  
+  /*
+   * Calculate percentage of time (_MP => Mean Time percentage) for each status ignoring undetermined time
+   */
+  $serviceStats["average"]["MEAN_TIME"] = $serviceStats["average"]["OK_T"] +  $serviceStats["average"]["WARNING_T"]
+    + $serviceStats["average"]["CRITICAL_T"]+ $serviceStats["average"]["UNKNOWN_T"];
+  
+  /*
+   * Calculate total of alerts
+   */
+  $serviceStats["average"]["TOTAL_ALERTS"] = $serviceStats["average"]["OK_A"] +  $serviceStats["average"]["WARNING_A"]
+    + $serviceStats["average"]["CRITICAL_A"]+ $serviceStats["average"]["UNKNOWN_A"];
+  $time = $serviceStats["average"]["MEAN_TIME"];
+  if ($time <= 0) {
+    foreach ($status as $key => $value)
+      if ($value != "UNDETERMINED" && $value != "MAINTENANCE")
+	$serviceStats["average"][$value."_MP"] = 0;
+  } else {
+    foreach ($status as $key => $value)
+      if ($value != "UNDETERMINED" && $value != "MAINTENANCE")
+	$serviceStats["average"][$value."_MP"] = round($serviceStats["average"][$value."_T"] / $time * 100, 2);
+  }
+
+  return $serviceStats;
+}
+
+///////////////////////////////
 
 function getHGDayStat($id, $start_date, $end_date) {
   global $pearDB;
@@ -385,7 +534,7 @@ $rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEve
 
 ###    . "AND DATE_FORMAT( FROM_UNIXTIME( `date_start`), '%W') IN (".$days_of_week.") ".
 
-echo "rq = $rq"; 
+// echo "rq = $rq"; 
 
 $DBRESULT = $pearDBO->query($rq);
 
@@ -699,22 +848,27 @@ return $tbl;
             $dates = getPeriodToReportFork($reportinfo['period']);
             $start_date = $dates[0] ;
             $end_date = $dates[1];
-            
+	    $category = $reportinfo["service_category"];            
             $reportingTimePeriod = getreportingTimePeriod();
             
-
             if (isset($hosts) && count($hosts) > 0) {
+	      //	      print "<pre>\n";
+	      //	      print_r($reportinfo);
                 foreach ( $hosts['report_hgs'] as $hgs_id ) {
                     $stats = array();
                     $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
 		    //		    print_r($l);
-		    //	      	    print "<pre>\n";
 		    //              print_r($stats);
-		    //              print "</pre>\n";
 		    $Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
 
-		    //                    print_r($Allfiles);
-                }
+		// Services for hosts in hostgrp:
+		    if (is_numeric ($category) ) {
+		      $stats = array();
+		      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
+		      $Allfiles[] = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+		    }
+		}
+		//		print "</pre>\n";
             }
             if (isset( $services ) && count($services) > 0 ) {
                 foreach ( $services['report_sg'] as $sg_id ) {
@@ -868,7 +1022,7 @@ return $tbl;
 			$ret["service_alias"] = str_replace('\\', "#BS#", $ret["service_alias"]);
 		}*/
 		$rq = "INSERT INTO pdfreports_reports " .
-				"(name, report_description, period, report_title, subject, mail_body, retention, report_comment, activate) " .
+				"(name, report_description, period, report_title, subject, mail_body, retention, service_category, report_comment, activate) " .
 				"VALUES ( ";
 				isset($ret["name"]) && $ret["name"] != NULL ? $rq .= "'".$ret["name"]."', ": $rq .= "NULL, ";
 				isset($ret["report_description"]) && $ret["report_description"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["report_description"], ENT_QUOTES))."', ": $rq .= "NULL, ";
@@ -877,6 +1031,7 @@ return $tbl;
 				isset($ret["subject"]) && $ret["subject"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["subject"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 				isset($ret["mail_body"]) && $ret["mail_body"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["mail_body"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 				isset($ret["retention"]) && $ret["retention"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["retention"], ENT_QUOTES))."', ": $rq .= "NULL, ";
+				isset($ret["service_category"]) && $ret["service_category"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["service_category"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 
 
 				if (isset($ret["report_comment"]) && $ret["report_comment"])	{
@@ -935,6 +1090,9 @@ return $tbl;
 		$rq .= "retention = ";
 		isset($ret["retention"]) && $ret["retention"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["retention"], ENT_QUOTES))."', ": $rq .= "4, ";
 
+		$rq .= "service_category = ";
+		isset($ret["service_category"]) && $ret["service_category"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["service_category"], ENT_QUOTES))."', ": $rq .= "NULL, ";
+
 		$rq .= "report_comment = ";
 		$ret["report_comment"] = str_replace("/", '#S#', $ret["report_comment"]);
 		$ret["report_comment"] = str_replace("\\", '#BS#', $ret["report_comment"]);
@@ -953,6 +1111,7 @@ return $tbl;
 		$fields["subject"] = htmlentities($ret["subject"], ENT_QUOTES);
 		$fields["mail_body"] = htmlentities($ret["mail_body"], ENT_QUOTES);
 		$fields["retention"] = htmlentities($ret["retention"], ENT_QUOTES);			
+		$fields["service_category"] = htmlentities($ret["service_category"], ENT_QUOTES);			
 		$fields["report_comment"] = htmlentities($ret["report_comment"], ENT_QUOTES);
 		//$oreon->CentreonLogAction->insertLog("service", $service_id["MAX(service_id)"], getHostServiceCombo($service_id, htmlentities($ret["service_description"], ENT_QUOTES)), "c", $fields);
 		//$oreon->user->access->updateACL();
@@ -993,6 +1152,10 @@ return $tbl;
 		if (isset($ret["retention"]) && $ret["retention"] != NULL) {
 			$rq .= "retention = '".htmlentities($ret["retention"], ENT_QUOTES)."', ";
 			$fields["retention"] = htmlentities($ret["retention"], ENT_QUOTES);
+		}
+		if (isset($ret["service_category"]) && $ret["service_category"] != NULL) {
+			$rq .= "service_category = '".htmlentities($ret["service_category"], ENT_QUOTES)."', ";
+			$fields["service_category"] = htmlentities($ret["service_category"], ENT_QUOTES);
 		}
 
 		if (isset($ret["report_activate"]["report_activate"]) && $ret["report_activate"]["report_activate"] != NULL) {

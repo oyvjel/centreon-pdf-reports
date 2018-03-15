@@ -21,6 +21,7 @@
 		<tr class="list_one"><td class="FormRowField">{$form.mail_body.label}</td><td class="FormRowValue">{$form.mail_body.html}</td></tr>		
 		<tr class="list_two"><td class="FormRowField">{$form.period.label}</td><td class="FormRowValue">{$form.period.html}</td></tr>
 		<tr class="list_one"><td class="FormRowField">{$form.report_hgs.label}</td><td class="FormRowValue">{$form.report_hgs.html}</td></tr>
+		<tr class="list_one"><td class="FormRowField">{$form.service_category.label}</td><td class="FormRowValue">{$form.service_category.html}</td></tr>
 		<tr class="list_two"><td class="FormRowField">{$form.report_sg.label}</td><td class="FormRowValue">{$form.report_sg.html}</td></tr>		
 		<tr class="list_lvl_1"><td class="ListColLvl1_name" colspan="2"><img src='./img/icones/16x16/mailer.gif'>&nbsp;&nbsp;{$form.header.notification}</td></tr>
 		<tr class="list_one"><td class="FormRowField">{$form.report_cs.label}</td><td class="FormRowValue">{$form.report_cs.html}</td></tr>		

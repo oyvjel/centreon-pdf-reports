@@ -44,12 +44,22 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		global $centreon_path;
 #		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
 		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
+		$subtitle = "";
 
 		
 		if ($mode == "hgs") { // Hostgroup
 		  $group_name = getMyHostGroupName($gid);
+		  $subtitle = "Hosts in hostgroup " . $group_name;
+		  $filetag = $group_name;
 		} else if ($mode == "sgs") { // Servicegroup
 		  $group_name = getMyServiceGroupName($gid);
+		  $filetag = $group_name;
+		  $subtitle = "Services in servicegroup " . $group_name;
+		} else if ($mode == "shg") { // SLA-services on hosts in hostgroup
+		  $mode = "sgs";
+		  $group_name = getMyHostGroupName($gid);
+		  $subtitle = "Services with SLA on hosts in hostgroup " .  $group_name;
+		  $filetag = $group_name . "_sla";
 		}
 		//		define ('PDF_PAGE_ORIENTATION', 'P');
 		
@@ -62,20 +72,20 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		$pdf->SetAuthor(getGeneralOptInfo("pdfreports_report_author"));
 		//$pdf->SetAuthor('Fully Automated Nagios');
 
-		$pdfTitle = $reportinfo["report_title"] . " " . $group_name;
+		$pdfTitle = $reportinfo["report_title"] . " " . $filetag;
 		//$pdfTitle = "Rapport de supervision du hostgroup ".$group_name; 
 		$pdf->SetTitle($pdfTitle);
 		//$pdf->SetSubject('TCPDF Tutorial');
 		//$pdf->SetKeywords('TCPDF, PDF, example, test, guide');
 
 		// define default header data
-		$header = $reportinfo["report_title"] . " " .$group_name;
+		$header = $reportinfo["report_title"];
 		//$header = "Rapport de supervision du hostgroup ".$group_name;
 		//$ip = $_SERVER['HOSTNAME'];
 		$startDate = date("d/m/Y", $start_date);
 		$time = time();
 		$endDate = date("d/m/Y", $end_date);
-		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
+		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n".$subtitle;
 
 		// set header and footer fonts
 		$pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
@@ -109,7 +119,7 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		// set default header data
 		
 		//       	$pdf->SetHeaderData('../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") , PDF_HEADER_LOGO_WIDTH, $header,$string);
-       	$pdf->SetHeaderData('../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") ,60, $header,$string);
+		$pdf->SetHeaderData('../../img/headers/' . getGeneralOptInfo("pdfreports_report_header_logo") ,60, $header,$string);
 
 		// add a page
 		$pdf->AddPage();
@@ -152,7 +162,7 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		$endDay = date("d", $time);
 		$endYear = date("Y", $time);
 		$endMonth = date("m", $time);
-		$pdfFileName =  $pdfDirName .$endYear."-".$endMonth."-".$endDay."_".$group_name.".pdf";
+		$pdfFileName =  $pdfDirName .$endYear."-".$endMonth."-".$endDay."_".$filetag.".pdf";
 		
 		if (!is_dir($pdfDirName))
 		  mkdir($pdfDirName,0775,true);

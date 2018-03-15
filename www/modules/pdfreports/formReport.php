@@ -206,6 +206,7 @@ error_reporting(E_ALL);
 	$ams3->setButtonAttributes('remove', array('value' => _("Delete")));
 	$ams3->setElementTemplate($template);
 	echo $ams3->getElementJs(false);	
+	$form->addElement('text', 'service_category', _("Create report for services in category ID  "), $attrsText2);
 	
 	/*
 	 *  Hosts 

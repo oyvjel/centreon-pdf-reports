@@ -30,4 +30,31 @@ Configuration -> PDF Reports
 Find more there: http://community.centreon.com/projects/pdfreports/
 Or on IRC : freenode, #Centreon
 
-Adapted to 2.8 by Øyvind Jelstad with good help from http://www.sugarbug.fr/atelier/techniques/ihmweb/centreon/centreon-pdf-reports-27/
+Adapted to 2.7 and 2.8 by Øyvind Jelstad with good help from http://www.sugarbug.fr/atelier/techniques/ihmweb/centreon/centreon-pdf-reports-27/
+
+Note: DB changed, but no automatic upgrade procedure. Reinstall or manually alter DB.  See sql/install.sql and git diffs.
+
+Reports:
+========
+Host availablility.
+-------------------
+Specify at least one "Linked HostGroups" to activate. 
+Availability report for each host in hostgroup including a summary will be generated.  A summary for each day in the time perioad will be appended.
+
+Service group
+-------------
+Specify at least one "Linked ServiceGroups" to activate.
+Each service ( host_id, service_id) in the service groups will be included in availability report. 
+Note that host services in service groups are specified by directly linking services defined on hosts to servicegroup or by linking services defined on hostgroups.
+In the last case report for each member host in hostgroup is generated for the specified service.
+
+Note that a host can not be a member of multiple hostgroups with the same service-name linked. This imposes som problems in decopeling host selection from service specification. The next  (new) report tries to solve this.
+
+Services on hosts i hostgroup
+-----------------------------
+Hosts are specified by "Linked HostGroups". Service statisticts, like in the service hostgroup report, for all services matching a category on each host is generated.
+The report is activated by specifying a category index. Specify 0 to select all sercvices on hosts and blank to disable report.
+ 
+
+   
+ 
