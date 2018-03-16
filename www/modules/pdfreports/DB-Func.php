@@ -407,13 +407,62 @@ ORDER BY host_name, hg_name, service_description;";
       $serviceStats[$count]["SERVICE_ID"] = $row['service_id'];
       $serviceStats[$count]["HOST_NAME"] = $row['host_name'];
       $serviceStats[$count]["SERVICE_DESC"] = $row['service_description'];
-      foreach ($serviceStatsLabels as $name)
+      foreach ($serviceStatsLabels as $name){
 	$serviceStats["average"][$name] += $Stats[$name];
+	//	$svStats[$row['service_id']][$name] += $Stats[$name];
+	//$hostStats[$row['host_id']][$name] += $Stats[$name];
+      }
+      //$svStats[$row['service_id']]["SERVICE_DESC"] =  $row['service_description'];
+      // $svStats[$row['service_id']]["COUNT"] ++;
+      //$hostStats[$row['host_id']]["HOST_NAME"] = $row['host_name'];
+      //$hostStats[$row['host_id']]["COUNT"] ++;
     }
     $count++;
   }
   $DBRESULT->free();
-  
+
+  /*
+   foreach ($hostStats as $h_id => $hs){
+    //    $time = $hs["TOTAL_TIME"];
+    $duration = $hs["OK_T"] +  $hs["WARNING_T"] +  $hs["CRITICAL_T"] +  $hs["UNKNOWN_T"];
+    $time = $duration + $hs["UNDETERMINED_T"] + $hs["MAINTENANCE_T"];
+    $hostStats[$h_id]["SERVICE_DESC"] = "Count = " . $hs["COUNT"];  
+    // We recalculate percents
+    foreach ($status as $key => $value) {
+      if ($time)
+	$hostStats[$h_id][$value."_TP"] = round($hs[$value."_T"] / $time * 100, 2);
+      else
+	$hostStats[$h_id][$value."_TP"] = 0;
+ 
+     if ($duration)
+	$hostStats[$h_id][$value."_MP"] = round($hs[$value."_T"] / $duration * 100, 2);
+      else
+	$hostStats[$h_id][$value."_MP"] = 0;
+ 
+    } 
+  }
+
+   foreach ($svStats as $s_id => $ss){
+    //    $time = $hs["TOTAL_TIME"];
+    $duration = $ss["OK_T"] +  $ss["WARNING_T"] +  $ss["CRITICAL_T"] +  $ss["UNKNOWN_T"];
+    $time = $duration + $ss["UNDETERMINED_T"] + $ss["MAINTENANCE_T"];
+    $svStats[$s_id]["HOST_NAME"] = "Count = " . $ss["COUNT"];  
+    // We recalculate percents
+    foreach ($status as $key => $value) {
+      if ($time)
+	$svStats[$s_id][$value."_TP"] = round($ss[$value."_T"] / $time * 100, 2);
+      else
+	$svStats[$s_id][$value."_TP"] = 0;
+ 
+     if ($duration)
+	$svStats[$s_id][$value."_MP"] = round($ss[$value."_T"] / $duration * 100, 2);
+      else
+	$svStats[$h_id][$value."_MP"] = 0;
+ 
+    } 
+  }
+  */
+
   /*
    * Average time for all status (OK, Critical, Warning, Unknown)
    */
@@ -424,6 +473,7 @@ ORDER BY host_name, hg_name, service_description;";
 	$serviceStats["average"][$name] /= $count;
       else
 	$serviceStats["average"][$name] = 0;
+
   }
   
   /*
@@ -851,32 +901,42 @@ return $tbl;
 	    $category = $reportinfo["service_category"];            
             $reportingTimePeriod = getreportingTimePeriod();
             
+	    print "<pre>\n";
             if (isset($hosts) && count($hosts) > 0) {
-	      //	      print "<pre>\n";
 	      //	      print_r($reportinfo);
                 foreach ( $hosts['report_hgs'] as $hgs_id ) {
                     $stats = array();
                     $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
 		    //		    print_r($l);
 		    //              print_r($stats);
-		    $Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+		    $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+		    pdfHosts($pdf, $stats, $hgs_id);
+		    pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+		    $Allfiles[] = pdfWriteFile($pdf);
 
 		// Services for hosts in hostgrp:
 		    if (is_numeric ($category) ) {
 		      $stats = array();
+#		      list($stats,$servStats,$hostStats) = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
 		      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
-		      $Allfiles[] = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+		      $pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+		      //		      		    print_r($stats);
+		      pdfServices($pdf, $stats);
+		      
+		      $Allfiles[] = pdfWriteFile($pdf);
 		    }
 		}
-		//		print "</pre>\n";
             }
             if (isset( $services ) && count($services) > 0 ) {
                 foreach ( $services['report_sg'] as $sg_id ) {
                     $sg_stats = array();
                     $sg_stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
-                    $Allfiles[] = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
+                    $pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
+		    pdfServices($pdf, $sg_stats);
+		    $Allfiles[] = pdfWriteFile($pdf);
                 }
             }
+	    print "</pre>\n";
 	    $files = array();
 	    $b = getGeneralOptInfo("pdfreports_path_gen");
 	    print "<p>Generated files:<ul>\n";

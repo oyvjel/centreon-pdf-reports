@@ -42,10 +42,8 @@ define ('PDF_HEADER_LOGO_WIDTH', 30);
 //function pdfGen($group_name, $start_date, $end_date,$stats,$l,$logo_header, $chart_img){
 function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		global $centreon_path;
-#		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
-		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
 		$subtitle = "";
-
+#		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
 		
 		if ($mode == "hgs") { // Hostgroup
 		  $group_name = getMyHostGroupName($gid);
@@ -67,6 +65,16 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 #		$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 		$pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
+		//génération d'un nom de pdf
+		$time = time();
+		$pdf->DirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
+		if (!is_dir($pdf->DirName))
+		  mkdir($pdf->DirName,0775,true);
+		$endDay = date("d", $time);
+		$endYear = date("Y", $time);
+		$endMonth = date("m", $time);
+		$pdf->FileName =  $pdf->DirName .$endYear."-".$endMonth."-".$endDay."_".$filetag.".pdf";
+
 		// set document information
 		$pdf->SetCreator("PDF Reports Module");
 		$pdf->SetAuthor(getGeneralOptInfo("pdfreports_report_author"));
@@ -83,7 +91,6 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		//$header = "Rapport de supervision du hostgroup ".$group_name;
 		//$ip = $_SERVER['HOSTNAME'];
 		$startDate = date("d/m/Y", $start_date);
-		$time = time();
 		$endDate = date("d/m/Y", $end_date);
 		$string = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n".$subtitle;
 
@@ -125,55 +132,145 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		$pdf->AddPage();
 		$pdf->writeHTML($reportinfo["report_comment"] ); 
 
-		//Column titles
-		$header = array('Status', 'Time', 'Total Time', 'Mean Time', 'Alert');
-
-		// Pie chart Generation
-		$piechart_img = pieGen($stats,$mode,$pdfDirName);
-				
-		//Data loading
-		$data = $pdf->LoadData($stats);
-
-		// print colored table
-		//$pdf->ColoredTable($header, $data,$chart_img);
-		if ($mode == "hgs") { // Hostgroup
-			$pdf->ColoredTable($header, $data,$piechart_img );
-			print "<pre>";
-//			print "Chartfile = $piechart_img\n";
-			$daytable = getHGDayStat($gid, $start_date, $end_date);
-			print "</pre>";
-//			print " $daytable";
-
-//			$myfile = fopen("/var/www/reports/test/daytable.html", "w") or die("Unable to open file!");
-//			fwrite($myfile, $daytable);
-//			fclose($myfile);
-
-			$pdf->writeHTML("<H1>Tidslinje</H1", true, false, false, false, ''); 
-			$pdf->writeHTML($daytable, true, false, false, false, ''); 
-
-		} else if ($mode == "sgs") { // Servicegroup
-			$pdf->ServicesColoredTable($header, $data,$piechart_img);
-		}
-
-
 		// ---------------------------------------------------------
 
-		//génération d'un nom de pdf
-		$endDay = date("d", $time);
-		$endYear = date("Y", $time);
-		$endMonth = date("m", $time);
-		$pdfFileName =  $pdfDirName .$endYear."-".$endMonth."-".$endDay."_".$filetag.".pdf";
-		
-		if (!is_dir($pdfDirName))
-		  mkdir($pdfDirName,0775,true);
-#		mkdir($pdfDirName);
+
+		return $pdf;
 
 		//Close and output PDF document
-		$pdf->Output($pdfFileName, 'F'); 
+		//		$pdf->Output($pdfFileName, 'F'); 
 
-		return $pdfFileName;
+		//		return $pdfFileName;
+}
+
+function pdfWriteFile($pdf) {
+  $file = $pdf->FileName;
+  $pdf->Output($file, 'F');  #This destroys the pdf object!
+  return $file;
+}
+
+
+function pdfHosts($pdf, $stats,$gid) {
+	
+  // Pie chart Generation
+  $piechart_img = pieGen($stats,"hgs",$pdf->DirName);
+  
+  //Data loading
+  $data = $pdf->LoadData($stats);
+  
+  //Column titles
+  $header = array('Status', 'Time', 'Total Time', 'Mean Time', 'Alert');
+  
+  // print colored table
+  $pdf->ColoredTable($header, $data,$piechart_img );
+}
+function pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date){
+
+  $daytable = getHGDayStat($hgs_id, $start_date, $end_date);
+  
+  $pdf->writeHTML("<H1>Tidslinje</H1", true, false, false, false, ''); 
+  $pdf->writeHTML($daytable, true, false, false, false, ''); 
+}
+
+function pdfServices($pdf, $data ) {
+	
+		// Pie chart Generation
+  $piechart_img = pieGen($data,"sgs",$pdf->DirName);
+  
+  $pdf->ServicesSummary($header, $data,$piechart_img);
+  
+  // Remove average 
+  unset($data['average']);
+  $data = array_values($data);
+  // 		print_r($data);
+  
+  $serviceStatsLabels = array();
+  $serviceStatsLabels = getServicesStatsValueName();
+  $status = array("OK", "WARNING", "CRITICAL", "UNKNOWN", "UNDETERMINED", "MAINTENANCE");
+
+  // Collapse hosts and services
+  foreach ($data as $rid => $row){
+    $h_id = $row['HOST_ID'];
+    $s_id = $row['SERVICE_ID'];
+    $svStats[$s_id]["SERVICE_DESC"] =  $row['SERVICE_DESC'];
+    $svStats[$s_id]["COUNT"] ++;
+    $hostStats[$h_id]["HOST_NAME"] = $row['HOST_NAME'];
+    $hostStats[$h_id]["COUNT"] ++;
+    foreach ($serviceStatsLabels as $name){
+      $svStats[$s_id][$name] += $row[$name];
+      $hostStats[$h_id][$name] += $row[$name];
+    }
+  } 
+
+
+   foreach ($hostStats as $h_id => $hs){
+    $duration = $hs["OK_T"] +  $hs["WARNING_T"] +  $hs["CRITICAL_T"] +  $hs["UNKNOWN_T"];
+    $time = $duration + $hs["UNDETERMINED_T"] + $hs["MAINTENANCE_T"];
+    $hostStats[$h_id]["SERVICE_DESC"] = "Count = " . $hs["COUNT"];  
+    // We recalculate percents
+    foreach ($status as $key => $value) {
+      if ($time)
+	$hostStats[$h_id][$value."_TP"] = round($hs[$value."_T"] / $time * 100, 2);
+      else
+	$hostStats[$h_id][$value."_TP"] = 0;
+ 
+     if ($duration)
+	$hostStats[$h_id][$value."_MP"] = round($hs[$value."_T"] / $duration * 100, 2);
+      else
+	$hostStats[$h_id][$value."_MP"] = 0;
+ 
+    } 
+  }
+
+   foreach ($svStats as $s_id => $ss){
+    $duration = $ss["OK_T"] +  $ss["WARNING_T"] +  $ss["CRITICAL_T"] +  $ss["UNKNOWN_T"];
+    $time = $duration + $ss["UNDETERMINED_T"] + $ss["MAINTENANCE_T"];
+    $svStats[$s_id]["HOST_NAME"] = "Count = " . $ss["COUNT"];  
+    // We recalculate percents
+    foreach ($status as $key => $value) {
+      if ($time)
+	$svStats[$s_id][$value."_TP"] = round($ss[$value."_T"] / $time * 100, 2);
+      else
+	$svStats[$s_id][$value."_TP"] = 0;
+ 
+     if ($duration)
+	$svStats[$s_id][$value."_MP"] = round($ss[$value."_T"] / $duration * 100, 2);
+      else
+	$svStats[$h_id][$value."_MP"] = 0;
+ 
+    } 
+  }
+
+
+   $pdf->ServicesColoredTable($hostStats,"Summary for Hosts");
+   $pdf->ServicesColoredTable($svStats,"Summary for Services");
+
+ 
+ //Sort new dataset.
+  usort($data, function($a, $b) {
+      if ($a['OK_MP']==$b['OK_MP']) return 0;
+      return ($a['OK_MP']<$b['OK_MP'])?-1:1;
+    });
+  
+  $pdf->ServicesColoredTable($data,"State Breakdowns For Host Services");
+  
+}
+function pdfServicesList($pdf, $data) {
+	
+		// Remove aveerage 
+		unset($data['average']);
+		$data = array_values($data);
+		//Sort new dataset.
+		usort($data, function($a, $b) {
+		    if ($a['OK_MP']==$b['OK_MP']) return 0;
+		    return ($a['OK_MP']<$b['OK_MP'])?-1:1;
+		  });
+		//		print_r($data);
+
+		$pdf->ServicesColoredTable($data);
 
 }
+
 
 /*
 * Including pie chart in report (like dashboard)

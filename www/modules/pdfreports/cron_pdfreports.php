@@ -148,6 +148,10 @@
 			    //print_r($stats);
 			    //tableau contenant la liste des pdf générés
 			    $Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+			    $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+			    pdfHosts($pdf, $stats);
+			    $Allfiles[] = pdfWriteFile($pdf);
+
 			  }
 			    
 			  //print_r($Allfiles);
@@ -155,7 +159,9 @@
 			  if (is_numeric ($category) ) {
 			    $stats = array();
 			    $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
-			    $Allfiles[] = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+			    $pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+			    pdfServices($pdf, $stats);
+			    $Allfiles[] = pdfWriteFile($pdf);
 			  }
 			  
 			}
