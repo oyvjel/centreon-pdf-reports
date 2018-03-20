@@ -127,7 +127,7 @@ EOD;
 		  <tr style="background-color:#D5DFEB;">
 		    <th>State</th>
 		    <th>Total Time</th>
-		    <th>Mean Time</th>
+		    <th>SLA Time</th>
 		    <th>Alerts</th>
 		  </tr>
 		  
@@ -373,6 +373,16 @@ EOD;
 //creation du tableau pour tcpdf, format html
 	
 	$tbl1 = <<<EOD
+<p>
+<hr>
+<b>Note:</b> Bug in Centreon results in some services reported as "Undetermined" even if monitoring graphs show they have been OK. Until this has been fixed one should consider entries with Undetermined time &gt; 0 in error.    
+<br>
+See https://forum.centreon.com/forum/centreon-ui/centreon-web-interface/147569-centreon-2-8-11-many-host-service-undetermined-in-reporting
+
+<hr>
+</p>
+
+
 <table border="0" align="center">
 	<tr   border="0" >
 	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
@@ -381,7 +391,7 @@ EOD;
 <tr>
   <th style="background-color:#D5DFEB;">State</th>
   <th style="background-color:#D5DFEB;">Total Time</th>
-  <th style="background-color:#D5DFEB;">Mean Time</th>
+  <th style="background-color:#D5DFEB;">SLA Time</th>
   <th style="background-color:#D5DFEB;">Alerts</th>
 </tr>
 
@@ -575,7 +585,7 @@ EOD;
 $tbl1 = <<<EOD
 <table>
 	<tr>
-        <th width="100%" colspan="$HEADER_WIDTH" style="background-color:#D7D6DD;" >$header (total=$i)</th>
+        <th width="100%" colspan="$HEADER_WIDTH" style="background-color:#D7D6DD;font-size: 12px;" >$header (total=$i)</th>
 	</tr>
 	<tr style="background-color:#D5DFEB;" >
 		<th colspan="2" width="36%"  ></th>
@@ -584,7 +594,7 @@ $tbl1 = <<<EOD
 		<th colspan="2" width="13%" >Critical</th>
 		<th colspan="2" width="13%" >Unknown</th>
 		$MAINTENANCE_HEADER
-		<th width="6%" >Undef</th>
+		<th width="6%" >Undet.</th>
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
@@ -604,6 +614,9 @@ $tbl1 = <<<EOD
 EOD;
 
 //$tbl1 = "\n <p>Total number of services = " . $i . "<p>\n";
+
+global $debug;	
+if($debug ){ print $css . $tbl1 . $tbl2;}
 
 $this->writeHTML($css . $tbl1 . $tbl2 , true, false, false, false, ''); 
 //$this->writeHTML($tbl1, true, false, false, false, ''); 

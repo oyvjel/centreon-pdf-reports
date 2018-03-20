@@ -387,7 +387,7 @@ FROM ("
   }
 
   $query .= "
-ORDER BY host_name, hg_name, service_description;";
+ORDER BY host_name, service_description;";
 
   //    print $query;
 
@@ -910,19 +910,19 @@ return $tbl;
 		    //		    print_r($l);
 		    //              print_r($stats);
 		    $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
-		    pdfHosts($pdf, $stats, $hgs_id);
+		    pdfHosts($pdf, $stats);
 		    pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
 		    $Allfiles[] = pdfWriteFile($pdf);
 
 		// Services for hosts in hostgrp:
 		    if (is_numeric ($category) ) {
+		      unset($stats);
 		      $stats = array();
 #		      list($stats,$servStats,$hostStats) = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
 		      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
 		      $pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
 		      //		      		    print_r($stats);
-		      pdfServices($pdf, $stats);
-		      
+		      pdfServices($pdf, $stats,"Services in hostggroup state");
 		      $Allfiles[] = pdfWriteFile($pdf);
 		    }
 		}
@@ -932,7 +932,7 @@ return $tbl;
                     $sg_stats = array();
                     $sg_stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
                     $pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
-		    pdfServices($pdf, $sg_stats);
+		    pdfServices($pdf, $sg_stats,"Services group state");
 		    $Allfiles[] = pdfWriteFile($pdf);
                 }
             }
@@ -1382,24 +1382,6 @@ return $tbl;
 			}
 	}
 	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 	

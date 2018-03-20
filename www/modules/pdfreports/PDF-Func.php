@@ -29,6 +29,7 @@ include($centreon_path . "/www/modules/pdfreports/lib/pChart/class/pDraw.class.p
 include($centreon_path . "/www/modules/pdfreports/lib/pChart/class/pPie.class.php");
 include($centreon_path . "/www/modules/pdfreports/lib/pChart/class/pImage.class.php");
 
+
 function init_pdf_header() {
   
 // First, we define K_TCPDF_EXTERNAL_CONFIG 
@@ -150,7 +151,7 @@ function pdfWriteFile($pdf) {
 }
 
 
-function pdfHosts($pdf, $stats,$gid) {
+function pdfHosts($pdf, $stats) {
 	
   // Pie chart Generation
   $piechart_img = pieGen($stats,"hgs",$pdf->DirName);
@@ -172,11 +173,20 @@ function pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date){
   $pdf->writeHTML($daytable, true, false, false, false, ''); 
 }
 
-function pdfServices($pdf, $data ) {
-	
+function myDebug($message) {
+  global $debug;
+  $debug = false;
+  if (! $debug ) return;
+
+  echo "Debug: " . $message . "\t Memory usage: " .memory_get_usage() . "\n";
+  //  print_r(debug_backtrace(false,1),true);
+
+}
+function pdfServices($pdf, $data, $header ) {
 		// Pie chart Generation
   $piechart_img = pieGen($data,"sgs",$pdf->DirName);
   
+  myDebug("ServiceSummary");
   $pdf->ServicesSummary($header, $data,$piechart_img);
   
   // Remove average 
@@ -187,14 +197,29 @@ function pdfServices($pdf, $data ) {
   $serviceStatsLabels = array();
   $serviceStatsLabels = getServicesStatsValueName();
   $status = array("OK", "WARNING", "CRITICAL", "UNKNOWN", "UNDETERMINED", "MAINTENANCE");
+  $zero["COUNT"] = 0;
+  foreach ($serviceStatsLabels as $name){
+    $zero[$name] = 0.0;
+  }
+     
 
+  myDebug("Service and host collapse");
+  $svStats = array();
+  $hostStats = array();
   // Collapse hosts and services
   foreach ($data as $rid => $row){
     $h_id = $row['HOST_ID'];
-    $s_id = $row['SERVICE_ID'];
-    $svStats[$s_id]["SERVICE_DESC"] =  $row['SERVICE_DESC'];
+    //    $s_id = $row['SERVICE_ID'];
+    $s_id = $row['SERVICE_DESC'];
+    if (!isset($svStats[$s_id])) {
+      $svStats[$s_id] = $zero;
+      $svStats[$s_id]["SERVICE_DESC"] =  $row['SERVICE_DESC'];
+    }
+    if (!isset($hostStats[$h_id])) {
+      $hostStats[$h_id] = $zero;
+      $hostStats[$h_id]["HOST_NAME"] = $row['HOST_NAME'];
+    }
     $svStats[$s_id]["COUNT"] ++;
-    $hostStats[$h_id]["HOST_NAME"] = $row['HOST_NAME'];
     $hostStats[$h_id]["COUNT"] ++;
     foreach ($serviceStatsLabels as $name){
       $svStats[$s_id][$name] += $row[$name];
@@ -204,9 +229,9 @@ function pdfServices($pdf, $data ) {
 
 
    foreach ($hostStats as $h_id => $hs){
-    $duration = $hs["OK_T"] +  $hs["WARNING_T"] +  $hs["CRITICAL_T"] +  $hs["UNKNOWN_T"];
+    $duration = $hs["OK_T"] +  $hs["CRITICAL_T"] +  $hs["UNKNOWN_T"] + $hs["WARNING_T"];
     $time = $duration + $hs["UNDETERMINED_T"] + $hs["MAINTENANCE_T"];
-    $hostStats[$h_id]["SERVICE_DESC"] = "Count = " . $hs["COUNT"];  
+    $hostStats[$h_id]["SERVICE_DESC"] =  $hs["COUNT"] . " services";  
     // We recalculate percents
     foreach ($status as $key => $value) {
       if ($time)
@@ -222,10 +247,12 @@ function pdfServices($pdf, $data ) {
     } 
   }
 
+  myDebug("Service stats calc");
+
    foreach ($svStats as $s_id => $ss){
-    $duration = $ss["OK_T"] +  $ss["WARNING_T"] +  $ss["CRITICAL_T"] +  $ss["UNKNOWN_T"];
+    $duration = $ss["OK_T"] +  $ss["CRITICAL_T"] +  $ss["UNKNOWN_T"]  +  $ss["WARNING_T"];
     $time = $duration + $ss["UNDETERMINED_T"] + $ss["MAINTENANCE_T"];
-    $svStats[$s_id]["HOST_NAME"] = "Count = " . $ss["COUNT"];  
+    $svStats[$s_id]["HOST_NAME"] =  $ss["COUNT"] . " hosts";  
     // We recalculate percents
     foreach ($status as $key => $value) {
       if ($time)
@@ -236,25 +263,52 @@ function pdfServices($pdf, $data ) {
      if ($duration)
 	$svStats[$s_id][$value."_MP"] = round($ss[$value."_T"] / $duration * 100, 2);
       else
-	$svStats[$h_id][$value."_MP"] = 0;
+	$svStats[$s_id][$value."_MP"] = 0;
  
     } 
   }
 
+   myDebug("HostTable");
+   usort($hostStats, "mpOKSort");
+   $pdf->ServicesColoredTable($hostStats,"Summary for Hosts (Ordered by OK % of SLA time)");
 
-   $pdf->ServicesColoredTable($hostStats,"Summary for Hosts");
-   $pdf->ServicesColoredTable($svStats,"Summary for Services");
+   myDebug("ServiceTable");
+   usort($svStats, "mpOKSort");
+   $pdf->ServicesColoredTable($svStats,"Summary for Services (Ordered by OK % of SLA time)");
 
- 
- //Sort new dataset.
+   myDebug("Sort Table");
+
+   /* 
+//Sort new dataset.
   usort($data, function($a, $b) {
       if ($a['OK_MP']==$b['OK_MP']) return 0;
       return ($a['OK_MP']<$b['OK_MP'])?-1:1;
     });
+   */
+   //   usort($data, "mpOKSort");
+   //   array_sort_by_column($data, 'OK_MP');
+   myDebug("Service-Host Table");
   
-  $pdf->ServicesColoredTable($data,"State Breakdowns For Host Services");
+  $pdf->ServicesColoredTable($data,"State Breakdowns For Host Services (ordered by host,service)");
   
 }
+function mpOKSort($a, $b) {
+      if ($a['OK_MP']==$b['OK_MP']) return 0;
+      return ($a['OK_MP']<$b['OK_MP'])?-1:1;
+}
+
+function array_sort_by_column(&$arr, $col, $dir = SORT_ASC) {
+  $sort_col = array();
+  foreach ($arr as $key=> $row) {
+    $sort_col[$key] = $row[$col];
+  }
+
+  array_multisort($sort_col, $dir, $arr);
+}
+
+
+//array_sort_by_column($array, 'order');
+
 function pdfServicesList($pdf, $data) {
 	
 		// Remove aveerage 
