@@ -168,16 +168,22 @@ function pdfHosts($pdf, $stats) {
 function pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date){
 
   $daytable = getHGDayStat($hgs_id, $start_date, $end_date);
-  
+myDebug("Write timeline pdf");
+
   $pdf->writeHTML("<H1>Tidslinje</H1", true, false, false, false, ''); 
-  $pdf->writeHTML($daytable, true, false, false, false, ''); 
+  $pdf->writeHTML($daytable, true, false, false, false, '');
+
+myDebug("Timeline finished! ");
+ 
 }
 
 function myDebug($message) {
   global $debug;
-  $debug = false;
+#  $debug = false;
+  $debug = true;
   if (! $debug ) return;
 
+  $myfile = file_put_contents('/tmp/pdfreport.log', date('c'). ": " . $message.PHP_EOL , FILE_APPEND | LOCK_EX);
   echo "Debug: " . $message . "\t Memory usage: " .memory_get_usage() . "\n";
   //  print_r(debug_backtrace(false,1),true);
 

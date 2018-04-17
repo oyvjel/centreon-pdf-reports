@@ -75,7 +75,7 @@
 	/*
 	 * Getting period table list to make the form period selection (today, this week etc.)
 	 */
-	$periodList = getPeriodList();
+	$periodList = getPeriodListFork();
 	
 	
 	/*

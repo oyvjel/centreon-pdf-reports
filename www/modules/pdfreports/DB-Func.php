@@ -108,10 +108,86 @@ function getGeneralOptInfo($option_name)	{
 	
 	//reprise de la fonction getPeriodToReport de www/include/reporting/dashboard/common-Func.php pour retourner un timestamp sans $_POST
 function getPeriodToReportFork($arg) {	
-		$interval = getDateSelect_predefined($arg);
+		$interval = getDateSelect_predefined_Fork($arg);
 		$start_date = $interval[0];
 		$end_date = $interval[1];
 		return(array($start_date,$end_date));
+}
+
+function getDateSelect_predefined_Fork($period){
+  $time = time();
+  $day = date("d", $time);
+  $year = date("Y", $time);
+  $month = date("m", $time);
+  if (!is_null($period)){
+    if($period == "yesterday"){
+      $start_date = mktime(0, 0, 0, $month, $day - 1, $year);
+      $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
+    } else if($period == "thisweek"){
+      $dd = (date("D",mktime(24, 0, 0, $month, $day - 1, $year)));
+      for($ct = 1; $dd != "Mon" ;$ct++)
+	$dd = (date("D",mktime(0, 0, 0, $month, ($day - $ct), $year)));
+      $start_date = mktime(0, 0, 0, $month, $day - $ct, $year);
+      $end_date = mktime(24, 0, 0, $month, ($day - 1), $year);
+    } else if($period == "last7days"){
+      $start_date = mktime(0, 0, 0, $month, $day - 7, $year);
+      $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
+    } else if($period == "last30days"){
+      $start_date = mktime(0, 0, 0, $month, $day - 30, $year);
+      $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
+    } else if($period == "lastyear"){
+      $start_date = mktime(0, 0, 0, 1, 1, $year-1);
+      $end_date = mktime(0, 0, 0, 1, 1, $year);
+    } else if($period == "thismonth") {
+      $start_date = mktime(0, 0, 0, $month, 1, $year);
+      $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
+
+    } else if($period == "last3months") {
+      $start_date = mktime(0, 0, 0, $month - 3, 1, $year);
+      $end_date = mktime(0, 0, 0, $month, 1, $year);
+    } else if($period == "lastquarter") {
+      $start_date = strtotime('3 months ago');
+      $start_quarter = ceil(date('m', $start_date) / 3);
+      $start_month = ($start_quarter * 3) - 2;
+      $start_year = date('Y', $start_date);
+      $start_date = mktime(0, 0, 0, $start_month, 1, $start_year);
+      $end_date = mktime(0, 0, 0, $start_month + 3, 1, $start_year);
+
+    } else if($period == "thisyear"){
+      $start_date = mktime(0, 0, 0, 1, 1, $year);
+      $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
+    } else { /* last month */
+      $start_date = mktime(0, 0, 0, $month - 1, 1, $year);
+      $end_date = mktime(0, 0, 0, $month, 1, $year);
+    }
+  } else {
+    $start_date = mktime(0, 0, 0, $month, $day - 1, $year);
+    $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
+  }
+  if ($start_date > $end_date) {
+    $start_date = $end_date;
+  }
+  return (array($start_date, $end_date));
+}
+
+
+
+function getPeriodListFork(){
+
+  $periodList = array();
+  $periodList[""] = "";
+  $periodList["yesterday"] = _("Yesterday");
+  $periodList["thisweek"] = _("This Week");
+  $periodList["last7days"] = _("Last 7 Days");
+  $periodList["thismonth"] = _("This Month");
+  $periodList["last30days"] = _("Last 30 Days");
+  $periodList["lastmonth"] = _("Last Month");
+  $periodList["last3months"] = _("Last 3 Months");
+  $periodList["lastquarter"] = _("Last Quarter");
+  $periodList["thisyear"] = _("This Year");
+  $periodList["lastyear"] = _("Last Year");
+
+  return $periodList;
 }
 
 //recuperation de tous les groupes de services
@@ -381,11 +457,11 @@ FROM ("
   . getSqlForHostgrpServices($hostgrp_id) . "
 ) as hgs";
   if ( isset($category) and $category > 0){
+    // Should inherit category. TODO!
     $query .= "
   JOIN service_categories_relation as cat ON cat.service_service_id = hgs.service_id
   WHERE cat.sc_id = '". $category ."'";
   }
-
   $query .= "
 ORDER BY host_name, service_description;";
 
@@ -394,7 +470,12 @@ ORDER BY host_name, service_description;";
   $DBRESULT = $pearDB->query($query);
 
   while ($row = $DBRESULT->fetchRow()) {
-    //foreach ($services as $host_service_id => $host_service_name) {
+  // TODO: category is NOT inherited from parent templates! MUST be set on service.
+    // Could check 'service_template_model_stm_id' for $row['service_id'] here.
+    // ... or check for match in service-name?
+
+    // next if not inherited_category($row['host_id'], $category);
+
     foreach ($serviceStatsLabels as $name) {
       $serviceStats[$count][$name] = 0;
     }
@@ -421,48 +502,7 @@ ORDER BY host_name, service_description;";
   }
   $DBRESULT->free();
 
-  /*
-   foreach ($hostStats as $h_id => $hs){
-    //    $time = $hs["TOTAL_TIME"];
-    $duration = $hs["OK_T"] +  $hs["WARNING_T"] +  $hs["CRITICAL_T"] +  $hs["UNKNOWN_T"];
-    $time = $duration + $hs["UNDETERMINED_T"] + $hs["MAINTENANCE_T"];
-    $hostStats[$h_id]["SERVICE_DESC"] = "Count = " . $hs["COUNT"];  
-    // We recalculate percents
-    foreach ($status as $key => $value) {
-      if ($time)
-	$hostStats[$h_id][$value."_TP"] = round($hs[$value."_T"] / $time * 100, 2);
-      else
-	$hostStats[$h_id][$value."_TP"] = 0;
  
-     if ($duration)
-	$hostStats[$h_id][$value."_MP"] = round($hs[$value."_T"] / $duration * 100, 2);
-      else
-	$hostStats[$h_id][$value."_MP"] = 0;
- 
-    } 
-  }
-
-   foreach ($svStats as $s_id => $ss){
-    //    $time = $hs["TOTAL_TIME"];
-    $duration = $ss["OK_T"] +  $ss["WARNING_T"] +  $ss["CRITICAL_T"] +  $ss["UNKNOWN_T"];
-    $time = $duration + $ss["UNDETERMINED_T"] + $ss["MAINTENANCE_T"];
-    $svStats[$s_id]["HOST_NAME"] = "Count = " . $ss["COUNT"];  
-    // We recalculate percents
-    foreach ($status as $key => $value) {
-      if ($time)
-	$svStats[$s_id][$value."_TP"] = round($ss[$value."_T"] / $time * 100, 2);
-      else
-	$svStats[$s_id][$value."_TP"] = 0;
- 
-     if ($duration)
-	$svStats[$s_id][$value."_MP"] = round($ss[$value."_T"] / $duration * 100, 2);
-      else
-	$svStats[$h_id][$value."_MP"] = 0;
- 
-    } 
-  }
-  */
-
   /*
    * Average time for all status (OK, Critical, Warning, Unknown)
    */
@@ -528,24 +568,7 @@ function getHGDayStat($id, $start_date, $end_date) {
 /*
  * getting all hosts from hostgroup
  */
-/*
-$str = "";
-$request = "SELECT host_host_id FROM `hostgroup_relation` WHERE `hostgroup_hg_id` = '" .$id."'";
-$DBRESULT = $pearDB->query($request);
-$i = 0;
-while ($hg = $DBRESULT->fetchRow()) {
-    if ($str != "") {
-        $str .= ", ";
-    }
-    $str .= "'".$hg["host_host_id"]."'";
-    $i++;
-}
-if ($str == "") {
-    $str = "''";
-}
-unset($hg);
-unset($DBRESULT);
-*/
+
 $hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
 if (count($hosts_id) == 0) {
   return 'No hosts in group';
@@ -559,7 +582,8 @@ foreach ($hosts_id as $hostId => $host_name) {
   $str .= "'". $hostId ."'";
   $i++;
 }
-      
+
+myDebug("Hosts in group: " . $str);
 
 //echo "Number of hosts in group = $i";
 //echo "Hostlist: $str";
@@ -585,6 +609,8 @@ $rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEve
 ###    . "AND DATE_FORMAT( FROM_UNIXTIME( `date_start`), '%W') IN (".$days_of_week.") ".
 
 // echo "rq = $rq"; 
+
+myDebug("Query: " . $rq);
 
 $DBRESULT = $pearDBO->query($rq);
 
@@ -659,7 +685,8 @@ $tbl .= "<table border=cellspacing=\"0\" cellpadding=\"1\" border=\"0\">\n".
 $img ='file:///usr/share/centreon/www/modules/pdfreports/img';
 
 while ($row = $DBRESULT->fetchRow()) {
-
+  myDebug("Processing Date: " . date("Y-m-d", $row["date_start"]));
+		  
     $duration = $row["UP_T"] + $row["DOWN_T"] + $row["UNREACHABLE_T"];
     $totaltime = $duration + $row["UNDETERMINED_T"] + $row["MAINTENANCE_T"];
 
@@ -896,27 +923,38 @@ return $tbl;
             $reportinfo = getReportInfo($report_id);
             $services = getServiceGroupReport($report_id);
             $dates = getPeriodToReportFork($reportinfo['period']);
+	    myDebug("Period = ". print_r($dates, true));
             $start_date = $dates[0] ;
             $end_date = $dates[1];
 	    $category = $reportinfo["service_category"];            
             $reportingTimePeriod = getreportingTimePeriod();
+
+	    $templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-mal.docx";
+	    $Allfiles[] = $templfile;
             
 	    print "<pre>\n";
             if (isset($hosts) && count($hosts) > 0) {
 	      //	      print_r($reportinfo);
                 foreach ( $hosts['report_hgs'] as $hgs_id ) {
+		  myDebug("Processing HG  ". print_r($hgs_id, true));
                     $stats = array();
                     $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
 		    //		    print_r($l);
 		    //              print_r($stats);
+		  myDebug("Generate pdf file");
 		    $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+		  myDebug("Generate HOST stats");
 		    pdfHosts($pdf, $stats);
+		  myDebug("Generate Timeline stats");
 		    pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+		  myDebug("Write pdf to file");
 		    $Allfiles[] = pdfWriteFile($pdf);
 
 		// Services for hosts in hostgrp:
 		    if (is_numeric ($category) ) {
 		      unset($stats);
+		  myDebug("Generate SERVICES stats for hostgroup");
+
 		      $stats = array();
 #		      list($stats,$servStats,$hostStats) = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
 		      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
@@ -936,6 +974,8 @@ return $tbl;
 		    $Allfiles[] = pdfWriteFile($pdf);
                 }
             }
+	    // TODO: Merge data in $templfile, see http://www.tinybutstrong.com/opentbs.php
+
 	    print "</pre>\n";
 	    $files = array();
 	    $b = getGeneralOptInfo("pdfreports_path_gen");

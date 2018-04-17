@@ -141,6 +141,9 @@ echo "[".date("Y-m-d H:i:s")."] Start generating reports for ". $argv[1] ."\n";
 			$category = $reportinfo["service_category"];
 			$reportingTimePeriod = getreportingTimePeriod();
 			
+			$templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-mal.docx";
+			$Allfiles[] = $templfile;
+
 			// Generate hostgroup reports			
 			
 			if (isset($hosts) && count($hosts) > 0) {

@@ -379,10 +379,14 @@ EOD;
 <br>
 See https://forum.centreon.com/forum/centreon-ui/centreon-web-interface/147569-centreon-2-8-11-many-host-service-undetermined-in-reporting
 
+Run to fix:
+sudo -u centreon /usr/share/centreon/cron/eventReportBuilder -r > /tmp/eventReportBuilder.log
+sudo -u centreon /usr/share/centreon/cron/dashboardBuilder -r > /tmp/dashboardBuilder &
 <hr>
 </p>
+EOD
 
-
+	$tbl1 = <<<EOD
 <table border="0" align="center">
 	<tr   border="0" >
 	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
