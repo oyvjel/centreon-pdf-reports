@@ -52,7 +52,7 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		  $filetag = $group_name;
 		} else if ($mode == "sgs") { // Servicegroup
 		  $group_name = getMyServiceGroupName($gid);
-		  $filetag = $group_name;
+		  $filetag = $group_name . "_srv";
 		  $subtitle = "Services in servicegroup " . $group_name;
 		} else if ($mode == "shg") { // SLA-services on hosts in hostgroup
 		  $mode = "sgs";
@@ -180,7 +180,7 @@ myDebug("Timeline finished! ");
 function myDebug($message) {
   global $debug;
 #  $debug = false;
-  $debug = true;
+#  $debug = true;
   if (! $debug ) return;
 
   $myfile = file_put_contents('/tmp/pdfreport.log', date('c'). ": " . $message.PHP_EOL , FILE_APPEND | LOCK_EX);

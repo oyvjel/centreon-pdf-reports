@@ -138,7 +138,8 @@ echo "[".date("Y-m-d H:i:s")."] Start generating reports for ". $argv[1] ."\n";
 			$dates = getPeriodToReportFork($reportinfo['period']);
 			$start_date = $dates[0] ;
 			$end_date = $dates[1];
-			$category = $reportinfo["service_category"];
+			$category = explode(',',$reportinfo["service_category"]);            
+			$hgnr = 0;
 			$reportingTimePeriod = getreportingTimePeriod();
 			
 			$templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-mal.docx";
@@ -169,12 +170,13 @@ echo "[".date("Y-m-d H:i:s")."] Start generating reports for ". $argv[1] ."\n";
 			      
 			      unset($stats);
 			      $stats = array();
-			      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
+			      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category[$hgnr]);
 			      if( ! empty($stats)){
 				$pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
 				pdfServices($pdf, $stats,"Services in hostggroup state");
 				$Allfiles[] = pdfWriteFile($pdf);
 			      }
+			      $hgnr++;
 			    }
 			  }
 			  

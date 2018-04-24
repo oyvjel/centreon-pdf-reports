@@ -34,6 +34,8 @@ class MYPDF extends TCPDF {
 
   public $DirName = '/tmp';
   public $FileName ='/tmp/centreon_report.pdf';
+  public $statlines = 0;
+  public $events = 0;
 
   //ajout de fonctions tcpdf pour la personnalisation du footer à partir de fct de personnalisation header
 
@@ -115,6 +117,7 @@ EOD;
 
 	//calcul du total des alertes
 	$TOTAL_A_AV = $UP_A_AV + $DOWN_A_AV + $UNREACHABLE_A_AV;
+	$this->events = $TOTAL_A_AV;
 
 //creation du tableau pour tcpdf, format html
 	
@@ -294,6 +297,7 @@ $tbl2 .= <<<EOD
 
 EOD;
 
+$this->statlines = $i;
 $tbl1 .= "\n <p>Total number of hosts = " . $i . "<p>\n";
 
 //print $tbl1;
@@ -369,6 +373,7 @@ EOD;
 	
 	//calcul du total des alertes
 	$TOTAL_A_AV = $OK_A_AV + $WARNING_A_AV + $UNKNOWN_A_AV;
+	$this->events = $TOTAL_A_AV;
 	
 //creation du tableau pour tcpdf, format html
 	
@@ -384,7 +389,7 @@ sudo -u centreon /usr/share/centreon/cron/eventReportBuilder -r > /tmp/eventRepo
 sudo -u centreon /usr/share/centreon/cron/dashboardBuilder -r > /tmp/dashboardBuilder &
 <hr>
 </p>
-EOD
+EOD;
 
 	$tbl1 = <<<EOD
 <table border="0" align="center">
@@ -579,6 +584,8 @@ EOD;
 $i++;
 //  }
 }
+
+$this->statlines = $i;
 
 //fermeture du tableau
 $tbl2 .= <<<EOD

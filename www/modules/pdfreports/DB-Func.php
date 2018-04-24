@@ -40,7 +40,9 @@ error_reporting(E_ALL);
         require_once("DB-Func.php");
 
 
-
+# global $debug;
+  $debug = true;
+#
 
 	## Get centreon version
 	/*
@@ -60,6 +62,279 @@ error_reporting(E_ALL);
 	} else {
 		require_once($centreon_path . "www/class/other.class.php");   
 	}
+
+
+function shutdown() 
+{ 
+  $a=error_get_last(); 
+  if($a==null)   
+    echo "No errors"; 
+  else 
+    print_r($a); 
+  
+} 
+
+
+function RunNowReportInDB ($report_id = null, $report_arr = array()) {
+
+  register_shutdown_function('shutdown'); 
+	  
+  ini_set('max_execution_time', 300);
+  myDebug("Max execution time set to 300 sec");
+
+  ini_set('memory_limit','1G');
+	  
+  if (!$report_id && !count($report_arr)) return;
+  global $pearDB, $oreon;
+  $hosts = array();
+  $reportinfo = array();
+  $hosts = getHostReport($report_id);
+  $reportinfo = getReportInfo($report_id);
+  $services = getServiceGroupReport($report_id);
+  $dates = getPeriodToReportFork($reportinfo['period']);
+  myDebug("Period = ". print_r($dates, true));
+  $start_date = $dates[0] ;
+  $end_date = $dates[1];
+  $category = explode(',',$reportinfo["service_category"]);            
+  $hgnr = 0;
+  $reportingTimePeriod = getreportingTimePeriod();
+  $data = array();
+
+  $totalhosts = 0;
+  $totalservices = 0;
+  $okh = 0;
+  $oks = 0;
+# Main Report summary:
+  $templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-template.odt";
+  if (file_exists($templfile)) {
+    $time = time();
+    $endDay = date("d", $time);
+    $endYear = date("Y", $time);
+    $endMonth = date("m", $time);
+    $ReportFile = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/" .$endYear."-".$endMonth."-".$endDay."_SLAReport.odt";
+    echo "The SLA template file $templfile will be used to generate $ReportFile";
+    $Allfiles[] = $ReportFile;
+    /*
+#Testdata:
+      $sla_data[] = array('hgroup'=> 'Gruppe1', 'repfile'=> 'File1', 'OK'=>91, 'hnr'=>1, 'events'=>123);
+      $sla_data[] = array('hgroup'=> 'Gruppe1', 'repfile'=> 'File1', 'OK'=>91, 'hnr'=>1, 'events'=>123);
+      $sla_data[] = array('hgroup'=> 'Gruppe1', 'repfile'=> 'File1', 'OK'=>91, 'hnr'=>1, 'events'=>123);
+*/
+  } else {
+    echo "The SLA template file $templfile does not exist";
+  }
+  myDebug("Categories: ". print_r($category, true));
+
+  print "<pre>\n";
+############# HostGroups: //////////////////
+  if (isset($hosts) && count($hosts) > 0) {
+    //	      print_r($reportinfo);
+    foreach ( $hosts['report_hgs'] as $hgs_id ) {
+      $group_name = getMyHostGroupName($hgs_id);
+      
+      myDebug("Processing HG ( ". print_r($hgs_id, true) . " ) " . $group_name . " ," . getMyHostGroupField($hgs_id,"hg_alias"));
+      $stats = array();
+      $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
+      //		    print_r($l);
+      //              print_r($stats);
+      $average = $stats["average"];
+      myDebug("Summary: ". print_r($stats["average"], true) );
+      // $sla_ok = $stats["average"]['UP_MP'];
+
+      myDebug("Generate pdf file");
+
+      $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+      myDebug("Generated file: ". $pdf->FileName);
+
+      myDebug("Generate HOST stats");
+      pdfHosts($pdf, $stats);
+      //		  myDebug("Generate Timeline stats");
+      // pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+      myDebug("Averages: ". print_r($average, true) );
+      $up = $average['UP_MP'];
+      $sla_data[] = array('hgroup'=> "Hostgroup " . $group_name
+			  ,'repfile'=>basename($pdf->FileName)
+			  ,'UP'=>$up
+			  ,'down'=>$average['DOWN_MP']
+			  ,'nosla'=>$average['MAINTENANCE_TP']
+			  ,'unknown'=>$average['UNREACHABLE_MP']
+			  ,'undet'=>$average['UNDETERMINED_TP']
+			  ,'hnr'=>$pdf->statlines
+			  ,'events'=>$pdf->events
+			  );
+     	// mean = (mean*nold + new*nnew)/(nold+nnew)
+
+	$okh = ($okh * $totalhosts + $up * $pdf->statlines) /($totalhosts + $pdf->statlines);
+	$totalhosts += $pdf->statlines;
+
+      myDebug("Write pdf to file");
+      $filename = pdfWriteFile($pdf); # pdf object is destroyed!!!
+      $Allfiles[] = $filename; 
+
+############# Services for hosts in hostgrp: //////////////////
+      if (isset($category[$hgnr]) && is_numeric ($category[$hgnr]) ) {
+	unset($stats);
+	myDebug("Generate SERVICES stats for service category( " .$hgnr . " ) = " . $category[$hgnr] . " ".getMyCategorieField($category[$hgnr],'sc_description') ." in  hostgroup " . $hgs_id );
+
+	$stats = array();
+#		      list($stats,$servStats,$hostStats) = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
+	$stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category[$hgnr]);
+	myDebug("Summary: ". print_r($stats["average"], true) );
+	// $sla_ok = $stats["average"]['OK_MP'];
+	// $sla_ok += $stats["average"]['WARNING_MP'];
+      $average = $stats["average"];
+      myDebug("Averages for services in hostgroup: ". print_r($average, true) );
+
+	$pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+	//		      		    print_r($stats);
+	pdfServices($pdf, $stats,"Services in hostggroup state");
+	//	$Allfiles[] = pdfWriteFile($pdf);
+	//	$sla_data[] = array('hgroup'=> $group_name . "services", 'repfile'=>basename($pdf->FileName), 'OK'=>$sla_ok, 'hnr'=>$pdf->statlines, 'events'=>$pdf->events);
+	$up = $average['OK_MP'] + $average['WARNING_MP'];
+	$sla_data[] = array('hgroup'=> $group_name . " services"
+			    ,'repfile'=>basename($pdf->FileName)
+			    ,'UP'=>$up
+			    ,'down'=>$average['CRITICAL_MP']
+			    ,'nosla'=>$average['MAINTENANCE_TP']
+			    ,'unknown'=>$average['UNKNOWN_MP']
+			    ,'undet'=>$average['UNDETERMINED_TP']
+			    ,'hnr'=>$pdf->statlines
+			    ,'events'=>$pdf->events
+			    );
+	$oks = ($oks * $totalservices + $up * $pdf->statlines) /($totalservices + $pdf->statlines);
+	$totalservices += $pdf->statlines;
+
+	$filename = pdfWriteFile($pdf);
+	$Allfiles[] = $filename; 
+      }
+      $hgnr++;
+    }
+  }
+################  ServiceGroups ///////////////////////
+  if (isset( $services ) && count($services) > 0 ) {
+    foreach ( $services['report_sg'] as $sg_id ) {
+      $group_name = getMyServiceGroupName($sg_id);
+      myDebug("Processing SG ( ". print_r($sg_id, true) . " ) " . $group_name );
+      unset($stats);
+      $stats = array();
+      $stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
+      // $sla_ok = $stats["average"]['OK_MP'];
+      //      $sla_ok += $stats["average"]['WARNING_MP'];
+      $average = $stats["average"];
+      myDebug("Averages for servicegroup: ". print_r($average, true) );
+      $pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $stats, $reportinfo );
+      pdfServices($pdf, $stats,"Services group state");
+      //      $sla_data[] = array('hgroup'=> $group_name , 'repfile'=>basename($pdf->FileName), 'OK'=>$sla_ok, 'hnr'=>$pdf->statlines, 'events'=>$pdf->events);
+      $up = $average['OK_MP'] + $average['WARNING_MP'];
+      $sla_data[] = array('hgroup'=> "Servicegrp " . $group_name
+			  ,'repfile'=>basename($pdf->FileName)
+			  ,'UP'=>$up
+			  ,'down'=>$average['CRITICAL_MP']
+			  ,'nosla'=>$average['MAINTENANCE_TP']
+			  ,'unknown'=>$average['UNKNOWN_MP']
+			  ,'undet'=>$average['UNDETERMINED_TP']
+			  ,'hnr'=>$pdf->statlines
+			  ,'events'=>$pdf->events
+			  );
+	$oks = ($oks * $totalservices + $up * $pdf->statlines) /($totalservices + $pdf->statlines);
+	$totalservices += $pdf->statlines;
+
+      $Allfiles[] = pdfWriteFile($pdf);
+    }
+  }
+
+  // Generate summary document from template:
+  if (file_exists($templfile)) {
+    // Include classes
+    global $centreon_path;
+
+    myDebug("Include TBS = ". print_r($centreon_path, true));
+    print $centreon_path;
+    include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_class.php");
+    include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_plugin_opentbs.php");
+#	    include_once('tbs_class.php'); // Load the TinyButStrong template engine
+#	    include_once('../tbs_plugin_opentbs.php'); // Load the OpenTBS plugin
+
+    // prevent from a PHP configuration problem when using mktime() and date()
+    if (version_compare(PHP_VERSION,'5.1.0')>=0) {
+      if (ini_get('date.timezone')=='') {
+	date_default_timezone_set('UTC');
+      }
+    }
+
+    /* #Mer Testdata:
+      $sla_data[] = array('hgroup'=> 'Gruppe2', 'repfile'=> 'File2', 'OK'=>92, 'hnr'=>2, 'events'=>123);
+      $sla_data[] = array('hgroup'=> 'Gruppe3', 'repfile'=> 'File3', 'OK'=>93, 'hnr'=>3, 'events'=>123);
+      $sla_data[] = array('hgroup'=> 'Gruppe4', 'repfile'=> 'File4', 'OK'=>94, 'hnr'=>4, 'events'=>123);
+    */
+
+    // Initialize the TBS instance
+    $TBS = new clsTinyButStrong; // new instance of TBS
+    $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
+    ### Data:
+    // define default header data
+    $GLOBALS['title'] = $reportinfo["report_title"];
+    //$header = "Rapport de supervision du hostgroup ".$group_name;
+    //$ip = $_SERVER['HOSTNAME'];
+    $GLOBALS['startDate'] = date("d/m/Y", $start_date);
+    $GLOBALS['endDate'] = date("d/m/Y", $end_date);
+    $GLOBALS['reportdate'] = date("Y-m-d", $time);
+    //    $interval = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
+    $GLOBALS['description'] = $reportinfo["report_description"];
+    $GLOBALS['comment'] = $reportinfo["report_comment"];
+    $periodlist = getPeriodListFork(); 
+    $GLOBALS['period'] =   $periodlist[$reportinfo['period']];
+    $TBS->LoadTemplate($templfile, OPENTBS_ALREADY_UTF8); // Also merge some [onload] automatic fields (depends of the type of document).
+    $GLOBALS['okh'] = $okh; 
+    $GLOBALS['oks'] = $oks;
+
+    $GLOBALS['cam'] = ''; 
+    $GLOBALS['author'] = "Centreon"; 
+ 
+    
+    //  $TBS->PlugIn(OPENTBS_DEBUG_INFO);
+  // TODO: Merge data in $templfile, see http://www.tinybutstrong.com/opentbs.php
+    myDebug("TBS merge array data: ". print_r($sla_data, true));
+
+    $TBS->MergeBlock('a,b,c', $sla_data);
+    
+    myDebug("Write report file ". $ReportFile);
+
+    $TBS->Show(OPENTBS_FILE, $ReportFile);
+
+    ###################3
+  }
+
+
+
+  print "</pre>\n";
+  $files = array();
+  $b = getGeneralOptInfo("pdfreports_path_gen");
+  print "<p>Generated files:<ul>\n";
+  foreach ( $Allfiles as $file) {
+    $files[basename($file)]["url"] = $file;
+    $a = str_replace($b,"/reports/",$file);
+    print "<li><a href=\"$a\">". $file . "</a> </li>\n";
+  }
+  print "</ul>\n";
+  if ($reportinfo['activate'] > 0 ) {
+    $emails = getReportContactEmail($report_id);
+
+    mailer(getGeneralOptInfo("pdfreports_report_author"),
+	   getGeneralOptInfo("pdfreports_email_sender"),$emails,$reportinfo['subject'],$reportinfo['mail_body'] ,
+	   getGeneralOptInfo("pdfreports_smtp_server_address"),$files,$reportinfo['name'] );
+  } else {
+    print "<p>Generated, but NO mail sent, report is not active <p>\n";
+  }
+
+
+  $files = null;
+  $Allfiles = null;
+  $emails = null;
+  $services = null ;
+  $hosts = null;
+}
+
 
 function getVersionNagios() {
   global $pearDB;
@@ -730,279 +1005,208 @@ return $tbl;
 	
 }
 
+function testReportExistence ($name = NULL)	{
+  global $pearDB;
+  global $form;
+  $id = NULL;
+  if (isset($form))
+    $id = $form->getSubmitValue('report_id');
+  $DBRESULT =& $pearDB->query("SELECT name, report_id FROM pdfreports_reports WHERE name = '".htmlentities($name, ENT_QUOTES)."'");
+  $report =& $DBRESULT->fetchRow();
+#Modif case
+  if ($DBRESULT->numRows() >= 1 && $report["report_id"] == $id)	
+    return true;
+#Duplicate entry
+  else if ($DBRESULT->numRows() >= 1 && $report["report_id"] != $id)	
+    return false;
+  else
+    return true;
+}
 
 
+function multipleReportInDB ($reports = array(), $nbrDup = array(), $host = NULL, $descKey = 1, $hostgroup = NULL, $hPars = array(), $hgPars = array())	{
+  global $pearDB, $oreon;
 
-	function testReportExistence ($name = NULL)	{
-		global $pearDB;
-		global $form;
-		$id = NULL;
-		if (isset($form))
-			$id = $form->getSubmitValue('report_id');
-		$DBRESULT =& $pearDB->query("SELECT name, report_id FROM pdfreports_reports WHERE name = '".htmlentities($name, ENT_QUOTES)."'");
-		$report =& $DBRESULT->fetchRow();
-		#Modif case
-		if ($DBRESULT->numRows() >= 1 && $report["report_id"] == $id)	
-			return true;
-		#Duplicate entry
-		else if ($DBRESULT->numRows() >= 1 && $report["report_id"] != $id)	
-			return false;
-		else
-			return true;
+  /*
+   * $descKey param is a flag.
+   * 	If 1, we know we have to rename description because it's a traditionnal duplication.
+   * 	If 0, we don't have to, beacause we duplicate services for an Host duplication
+   *	Foreach Service
+   */
+  $maxId["MAX(report_id)"] = NULL;
+  foreach ($reports as $key=>$value)	{
+    /*
+     *  Get all information about it
+     */
+    $DBRESULT =& $pearDB->query("SELECT * FROM pdfreports_reports WHERE report_id = '".$key."' LIMIT 1");
+    $row = $DBRESULT->fetchRow();
+    $row["report_id"] = '';
+    /*
+     * Loop on the number of Service we want to duplicate
+     */
+    for ($i = 1; $i <= $nbrDup[$key]; $i++)	{
+      $val = NULL;
+      /*
+       * Create a sentence which contains all the value
+       */
+      foreach ($row as $key2=>$value2)	{
+	if ($key2 == "name" && $descKey) {
+	  $name = $value2 = $value2."_".$i;
 	}
-
-
-	function multipleReportInDB ($reports = array(), $nbrDup = array(), $host = NULL, $descKey = 1, $hostgroup = NULL, $hPars = array(), $hgPars = array())	{
-		global $pearDB, $oreon;
-
-		/*
-		 * $descKey param is a flag.
-		 * 	If 1, we know we have to rename description because it's a traditionnal duplication.
-		 * 	If 0, we don't have to, beacause we duplicate services for an Host duplication
-		 *	Foreach Service
-		 */
-		$maxId["MAX(report_id)"] = NULL;
-		foreach ($reports as $key=>$value)	{
-			/*
-			 *  Get all information about it
-			 */
-			$DBRESULT =& $pearDB->query("SELECT * FROM pdfreports_reports WHERE report_id = '".$key."' LIMIT 1");
-			$row = $DBRESULT->fetchRow();
-			$row["report_id"] = '';
-			/*
-			 * Loop on the number of Service we want to duplicate
-			 */
-			for ($i = 1; $i <= $nbrDup[$key]; $i++)	{
-				$val = NULL;
-				/*
-				 * Create a sentence which contains all the value
-				 */
-				foreach ($row as $key2=>$value2)	{
-					if ($key2 == "name" && $descKey) {
-						$name = $value2 = $value2."_".$i;
-					}
-					else if ($key2 == "name")
-						$report_description = NULL;
-					$val ? $val .= ($value2!=NULL?(", '".$value2."'"):", NULL") : $val .= ($value2!=NULL?("'".$value2."'"):"NULL");
-					if ($key2 != "report_id")
-						$fields[$key2] = $value2;
-					/*if (isset($service_description))
-						$fields["report_description"] = $report_description;*/
-				}
-				if (!count($hPars))
-					$hPars = getMyServiceHosts($key); // todo
-				if (!count($hgPars))
-					$hgPars = getMyServiceHostGroups($key);  // todo
-				if ( testReportExistence($name)) 	{
-					$hPars = array();
-					$hgPars = array();
-					(isset($val) && $val != "NULL" && $val) ? $rq = "INSERT INTO pdfreports_reports VALUES (".$val.")" : $rq = NULL;
-					if (isset($rq)) {
-						$DBRESULT =& $pearDB->query($rq);
-						$DBRESULT =& $pearDB->query("SELECT MAX(report_id) FROM pdfreports_reports");
-						$maxId =& $DBRESULT->fetchRow();
-						if (isset($maxId["MAX(report_id)"]))	{
-							/*
-							 * Host duplication case -> Duplicate the Service for the Host we create
-							 */
-							if ($host)
-								$pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', NULL, '".$host."',  '".$maxId["MAX(report_id)"]."')");
-							else if ($hostgroup)
-								$pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', '".$hostgroup."', NULL, '".$maxId["MAX(report_id)"]."')");
-							else	{
-							# Service duplication case -> Duplicate the Service for each relation the base Service have
-								$DBRESULT =& $pearDB->query("SELECT DISTINCT host_host_id, hostgroup_hg_id FROM pdfreports_host_report_relation WHERE reports_rp_id = '".$key."'");
-								//$fields["service_hPars"] = "";
-								//$fields["service_hgPars"] = "";
-								while($report =& $DBRESULT->fetchRow())	{
-									if ($report["host_host_id"]) {
-										$DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', NULL, '".$report["host_host_id"]."',  '".$maxId["MAX(id)"]."')");
-										//$fields["service_hPars"] .= $service["host_host_id"] . ",";
-									}
-									else if ($report["hostgroup_hg_id"]) {
-										$DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', '".$report["hostgroup_hg_id"]."', NULL, '".$maxId["MAX(id)"]."')");
-										//$fields["service_hgPars"] .= $service["hostgroup_hg_id"] . ",";
-									}
-								}
-								//$fields["service_hPars"] = trim($fields["service_hPars"], ",");
-								//$fields["service_hgPars"] = trim($fields["service_hgPars"], ",");
-							}
-
-							/*
-							 * ServiceGroup duplication
-							 */
-							$DBRESULT =& $pearDB->query("SELECT DISTINCT servicegroup_sg_id FROM pdfreports_reports_servicegroup_relation WHERE reports_rp_id = '".$key."'");
-							//$fields["service_cgs"] = "";
-							while($Sg =& $DBRESULT->fetchRow()){
-								$DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_reports_servicegroup_relation VALUES ('', '".$maxId["MAX(report_id)"]."', '".$Sg["servicegroup_sg_id"]."')");
-								//$fields["service_cgs"] .= $Cg["contactgroup_cg_id"] . ",";
-							}
-							//$fields["service_cgs"] = trim($fields["service_cgs"], ",");
-
-
-							/*
-							 * Contact duplication
-							 */
-							$DBRESULT =& $pearDB->query("SELECT DISTINCT contact_c_id FROM pdfreports_reports_contact_relation WHERE reports_rp_id = '".$key."'");
-							//$fields["service_cs"] = "";
-							while ($C =& $DBRESULT->fetchRow()){
-								$DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_reports_contact_relation VALUES ('', '".$maxId["MAX(report_id)"]."', '".$C["contact_c_id"]."')");
-								//$fields["service_cs"] .= $C["contact_c_id"] . ",";
-							}
-							//$fields["service_cs"] = trim($fields["service_cs"], ",");
-
-							/*
-							 * ContactGroup duplication
-							 */
-							$DBRESULT =& $pearDB->query("SELECT DISTINCT contactgroup_cg_id FROM pdfreports_reports_contactgroup_relation WHERE reports_rp_id = '".$key."'");
-							//$fields["service_cgs"] = "";
-							while($Cg =& $DBRESULT->fetchRow()){
-								$DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_reports_contactgroup_relation VALUES ('', '".$maxId["MAX(report_id)"]."', '".$Cg["contactgroup_cg_id"]."')");
-								//$fields["service_cgs"] .= $Cg["contactgroup_cg_id"] . ",";
-							}
-							//$fields["service_cgs"] = trim($fields["service_cgs"], ",");
-
-
-
-							/*
-							 *  get svc desc
-							 */
-							$query = "SELECT report_description FROM pdfreports_reports WHERE report_id = '".$maxId["MAX(report_id)"]."' LIMIT 1";
-							$DBRES =& $pearDB->query($query);
-							if ($DBRES->numRows()) {
-								$row2 =& $DBRES->fetchRow();
-								$description = $row2['report_description'];
-								$description = str_replace("#S#", "/", $description);
-								$description = str_replace("#BS#", "\\", $description);
-								//$oreon->CentreonLogAction->insertLog("service", $maxId["MAX(service_id)"], getHostServiceCombo($maxId["MAX(service_id)"], $description), "a", $fields);
-							}
-						}
-					}
-				}
-			}
+	else if ($key2 == "name")
+	  $report_description = NULL;
+	$val ? $val .= ($value2!=NULL?(", '".$value2."'"):", NULL") : $val .= ($value2!=NULL?("'".$value2."'"):"NULL");
+	if ($key2 != "report_id")
+	  $fields[$key2] = $value2;
+	/*if (isset($service_description))
+	  $fields["report_description"] = $report_description;*/
+      }
+      if (!count($hPars))
+	$hPars = getMyServiceHosts($key); // todo
+      if (!count($hgPars))
+	$hgPars = getMyServiceHostGroups($key);  // todo
+      if ( testReportExistence($name)) 	{
+	$hPars = array();
+	$hgPars = array();
+	(isset($val) && $val != "NULL" && $val) ? $rq = "INSERT INTO pdfreports_reports VALUES (".$val.")" : $rq = NULL;
+	if (isset($rq)) {
+	  $DBRESULT =& $pearDB->query($rq);
+	  $DBRESULT =& $pearDB->query("SELECT MAX(report_id) FROM pdfreports_reports");
+	  $maxId =& $DBRESULT->fetchRow();
+	  if (isset($maxId["MAX(report_id)"]))	{
+	    /*
+	     * Host duplication case -> Duplicate the Service for the Host we create
+	     */
+	    if ($host)
+	      $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', NULL, '".$host."',  '".$maxId["MAX(report_id)"]."')");
+	    else if ($hostgroup)
+	      $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', '".$hostgroup."', NULL, '".$maxId["MAX(report_id)"]."')");
+	    else	{
+# Service duplication case -> Duplicate the Service for each relation the base Service have
+	      $DBRESULT =& $pearDB->query("SELECT DISTINCT host_host_id, hostgroup_hg_id FROM pdfreports_host_report_relation WHERE reports_rp_id = '".$key."'");
+	      //$fields["service_hPars"] = "";
+	      //$fields["service_hgPars"] = "";
+	      while($report =& $DBRESULT->fetchRow())	{
+		if ($report["host_host_id"]) {
+		  $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', NULL, '".$report["host_host_id"]."',  '".$maxId["MAX(id)"]."')");
+		  //$fields["service_hPars"] .= $service["host_host_id"] . ",";
 		}
-		return ($maxId["MAX(report_id)"]);
-	}
-
-
-
-
-	function enableReportInDB ($report_id = null, $report_arr = array())	{
-		if (!$report_id && !count($report_arr)) return;
-		global $pearDB, $oreon;
-		if ($report_id)
-			$report_arr = array($report_id=>"1");
-		foreach($report_arr as $key=>$value)	{
-			$DBRESULT =& $pearDB->query("UPDATE pdfreports_reports SET activate = '1' WHERE report_id = '".$key."'");
-			$DBRESULT2 =& $pearDB->query("SELECT report_description FROM `pdfreports_reports` WHERE report_id = '".$key."' LIMIT 1");
-			$row = $DBRESULT2->fetchRow();
+		else if ($report["hostgroup_hg_id"]) {
+		  $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', '".$report["hostgroup_hg_id"]."', NULL, '".$maxId["MAX(id)"]."')");
+		  //$fields["service_hgPars"] .= $service["hostgroup_hg_id"] . ",";
 		}
-	}
-
-	function disableReportInDB ($report_id = null, $report_arr = array())	{
-		if (!$report_id && !count($report_arr)) return;
-		global $pearDB, $oreon;
-		if ($report_id)
-			$report_arr = array($report_id=>"1");
-		foreach($report_arr as $key=>$value)	{
-			$DBRESULT =& $pearDB->query("UPDATE pdfreports_reports SET activate = '0' WHERE report_id = '".$key."'");
-
-			$DBRESULT2 =& $pearDB->query("SELECT report_description FROM `pdfreports_reports` WHERE report_id = '".$key."' LIMIT 1");
-			$row = $DBRESULT2->fetchRow();
-		//	$oreon->CentreonLogAction->insertLog("service", $key, getHostServiceCombo($key, $row['service_description']), "disable");
-		}
-	}
-
-	function RunNowReportInDB ($report_id = null, $report_arr = array()) {
-
-            if (!$report_id && !count($report_arr)) return;
-            global $pearDB, $oreon;
-            $hosts = array();
-            $reportinfo = array();
-            $hosts = getHostReport($report_id);
-            $reportinfo = getReportInfo($report_id);
-            $services = getServiceGroupReport($report_id);
-            $dates = getPeriodToReportFork($reportinfo['period']);
-	    myDebug("Period = ". print_r($dates, true));
-            $start_date = $dates[0] ;
-            $end_date = $dates[1];
-	    $category = $reportinfo["service_category"];            
-            $reportingTimePeriod = getreportingTimePeriod();
-
-	    $templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-mal.docx";
-	    $Allfiles[] = $templfile;
-            
-	    print "<pre>\n";
-            if (isset($hosts) && count($hosts) > 0) {
-	      //	      print_r($reportinfo);
-                foreach ( $hosts['report_hgs'] as $hgs_id ) {
-		  myDebug("Processing HG  ". print_r($hgs_id, true));
-                    $stats = array();
-                    $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
-		    //		    print_r($l);
-		    //              print_r($stats);
-		  myDebug("Generate pdf file");
-		    $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
-		  myDebug("Generate HOST stats");
-		    pdfHosts($pdf, $stats);
-		  myDebug("Generate Timeline stats");
-		    pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
-		  myDebug("Write pdf to file");
-		    $Allfiles[] = pdfWriteFile($pdf);
-
-		// Services for hosts in hostgrp:
-		    if (is_numeric ($category) ) {
-		      unset($stats);
-		  myDebug("Generate SERVICES stats for hostgroup");
-
-		      $stats = array();
-#		      list($stats,$servStats,$hostStats) = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
-		      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
-		      $pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
-		      //		      		    print_r($stats);
-		      pdfServices($pdf, $stats,"Services in hostggroup state");
-		      $Allfiles[] = pdfWriteFile($pdf);
-		    }
-		}
-            }
-            if (isset( $services ) && count($services) > 0 ) {
-                foreach ( $services['report_sg'] as $sg_id ) {
-                    $sg_stats = array();
-                    $sg_stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
-                    $pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );
-		    pdfServices($pdf, $sg_stats,"Services group state");
-		    $Allfiles[] = pdfWriteFile($pdf);
-                }
-            }
-	    // TODO: Merge data in $templfile, see http://www.tinybutstrong.com/opentbs.php
-
-	    print "</pre>\n";
-	    $files = array();
-	    $b = getGeneralOptInfo("pdfreports_path_gen");
-	    print "<p>Generated files:<ul>\n";
-	    foreach ( $Allfiles as $file) {
-	      $files[basename($file)]["url"] = $file;
-	      $a = str_replace($b,"/reports/",$file);
-	      print "<li><a href=\"$a\">". $file . "</a> </li>\n";
-	    }
-	    print "</ul>\n";
-	    if ($reportinfo['activate'] > 0 ) {
-	      $emails = getReportContactEmail($report_id);
-
-	      mailer(getGeneralOptInfo("pdfreports_report_author"),
-		     getGeneralOptInfo("pdfreports_email_sender"),$emails,$reportinfo['subject'],$reportinfo['mail_body'] ,
-		     getGeneralOptInfo("pdfreports_smtp_server_address"),$files,$reportinfo['name'] );
-	    } else {
-	      print "<p>Generated, but NO mail sent, report is not active <p>\n";
+	      }
+	      //$fields["service_hPars"] = trim($fields["service_hPars"], ",");
+	      //$fields["service_hgPars"] = trim($fields["service_hgPars"], ",");
 	    }
 
-            $files = null;
-            $Allfiles = null;
-            $emails = null;
-            $services = null ;
-            $hosts = null;
-	}
+	    /*
+	     * ServiceGroup duplication
+	     */
+	    $DBRESULT =& $pearDB->query("SELECT DISTINCT servicegroup_sg_id FROM pdfreports_reports_servicegroup_relation WHERE reports_rp_id = '".$key."'");
+	    //$fields["service_cgs"] = "";
+	    while($Sg =& $DBRESULT->fetchRow()){
+	      $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_reports_servicegroup_relation VALUES ('', '".$maxId["MAX(report_id)"]."', '".$Sg["servicegroup_sg_id"]."')");
+	      //$fields["service_cgs"] .= $Cg["contactgroup_cg_id"] . ",";
+	    }
+	    //$fields["service_cgs"] = trim($fields["service_cgs"], ",");
 
+
+	    /*
+	     * Contact duplication
+	     */
+	    $DBRESULT =& $pearDB->query("SELECT DISTINCT contact_c_id FROM pdfreports_reports_contact_relation WHERE reports_rp_id = '".$key."'");
+	    //$fields["service_cs"] = "";
+	    while ($C =& $DBRESULT->fetchRow()){
+	      $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_reports_contact_relation VALUES ('', '".$maxId["MAX(report_id)"]."', '".$C["contact_c_id"]."')");
+	      //$fields["service_cs"] .= $C["contact_c_id"] . ",";
+	    }
+	    //$fields["service_cs"] = trim($fields["service_cs"], ",");
+
+	    /*
+	     * ContactGroup duplication
+	     */
+	    $DBRESULT =& $pearDB->query("SELECT DISTINCT contactgroup_cg_id FROM pdfreports_reports_contactgroup_relation WHERE reports_rp_id = '".$key."'");
+	    //$fields["service_cgs"] = "";
+	    while($Cg =& $DBRESULT->fetchRow()){
+	      $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_reports_contactgroup_relation VALUES ('', '".$maxId["MAX(report_id)"]."', '".$Cg["contactgroup_cg_id"]."')");
+	      //$fields["service_cgs"] .= $Cg["contactgroup_cg_id"] . ",";
+	    }
+	    //$fields["service_cgs"] = trim($fields["service_cgs"], ",");
+
+
+
+	    /*
+	     *  get svc desc
+	     */
+	    $query = "SELECT report_description FROM pdfreports_reports WHERE report_id = '".$maxId["MAX(report_id)"]."' LIMIT 1";
+	    $DBRES =& $pearDB->query($query);
+	    if ($DBRES->numRows()) {
+	      $row2 =& $DBRES->fetchRow();
+	      $description = $row2['report_description'];
+	      $description = str_replace("#S#", "/", $description);
+	      $description = str_replace("#BS#", "\\", $description);
+	      //$oreon->CentreonLogAction->insertLog("service", $maxId["MAX(service_id)"], getHostServiceCombo($maxId["MAX(service_id)"], $description), "a", $fields);
+	    }
+	  }
+	}
+      }
+    }
+  }
+  return ($maxId["MAX(report_id)"]);
+}
+
+
+
+
+function enableReportInDB ($report_id = null, $report_arr = array())	{
+  if (!$report_id && !count($report_arr)) return;
+  global $pearDB, $oreon;
+  if ($report_id)
+    $report_arr = array($report_id=>"1");
+  foreach($report_arr as $key=>$value)	{
+    $DBRESULT =& $pearDB->query("UPDATE pdfreports_reports SET activate = '1' WHERE report_id = '".$key."'");
+    $DBRESULT2 =& $pearDB->query("SELECT report_description FROM `pdfreports_reports` WHERE report_id = '".$key."' LIMIT 1");
+    $row = $DBRESULT2->fetchRow();
+  }
+}
+
+function disableReportInDB ($report_id = null, $report_arr = array())	{
+  if (!$report_id && !count($report_arr)) return;
+  global $pearDB, $oreon;
+  if ($report_id)
+    $report_arr = array($report_id=>"1");
+  foreach($report_arr as $key=>$value)	{
+    $DBRESULT =& $pearDB->query("UPDATE pdfreports_reports SET activate = '0' WHERE report_id = '".$key."'");
+
+    $DBRESULT2 =& $pearDB->query("SELECT report_description FROM `pdfreports_reports` WHERE report_id = '".$key."' LIMIT 1");
+    $row = $DBRESULT2->fetchRow();
+    //	$oreon->CentreonLogAction->insertLog("service", $key, getHostServiceCombo($key, $row['service_description']), "disable");
+  }
+}
+
+function getMyHostGroupField($hg_id = NULL, $field) 
+{
+  if (!$hg_id)
+    return;
+  global $pearDB;
+    
+  $DBRESULT = $pearDB->query("SELECT $field FROM hostgroup WHERE hg_id = '" . CentreonDB::escape($hg_id) . "' LIMIT 1");
+  $row = $DBRESULT->fetchRow();
+  if ($row[$field])
+    return html_entity_decode($row[$field], ENT_QUOTES, "UTF-8");
+  return NULL;
+}
+
+function getMyCategorieField($sc_id = NULL, $field) {
+  if (!$sc_id)
+    return;
+  global $pearDB;
+
+  $DBRESULT = $pearDB->query("SELECT $field FROM service_categories WHERE sc_id = '" . CentreonDB::escape($sc_id) . "'");
+  $row = $DBRESULT->fetchRow();
+  return $row[$field];
+}
 	function deleteReportInDB ($reports = array())	{
 		global $pearDB, $oreon;
 
