@@ -372,7 +372,7 @@ EOD;
 	}
 	
 	//calcul du total des alertes
-	$TOTAL_A_AV = $OK_A_AV + $WARNING_A_AV + $UNKNOWN_A_AV;
+	$TOTAL_A_AV = $OK_A_AV + $WARNING_A_AV + $UNKNOWN_A_AV + $CRITICAL_A_AV;
 	$this->events = $TOTAL_A_AV;
 	
 //creation du tableau pour tcpdf, format html
@@ -395,7 +395,7 @@ EOD;
 <table border="0" align="center">
 	<tr   border="0" >
 	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
-	<td colspan="4"  style="background-color:#D7D7DD;" >Services group state</td>
+	<td colspan="4"  style="background-color:#D7D7DD;" >$header</td>
 	</tr>
 <tr>
   <th style="background-color:#D5DFEB;">State</th>

@@ -40,9 +40,7 @@ error_reporting(E_ALL);
         require_once("DB-Func.php");
 
 
-# global $debug;
   $debug = true;
-#
 
 	## Get centreon version
 	/*
@@ -79,12 +77,17 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
 
   register_shutdown_function('shutdown'); 
 	  
-  ini_set('max_execution_time', 300);
-  myDebug("Max execution time set to 300 sec");
+  ini_set('max_execution_time', 900);
+  myDebug("Max execution time set to 900 sec");
 
   ini_set('memory_limit','1G');
-	  
-  if (!$report_id && !count($report_arr)) return;
+  GenerateReport($report_id);
+}
+
+#####
+function GenerateReport ($report_id = null) {	  
+#  if (!$report_id && !count($report_arr)) return;
+  if (!$report_id) return;
   global $pearDB, $oreon;
   $hosts = array();
   $reportinfo = array();
@@ -95,6 +98,8 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
   myDebug("Period = ". print_r($dates, true));
   $start_date = $dates[0] ;
   $end_date = $dates[1];
+  myDebug("Start = ". print_r(date('r',$start_date)));
+  myDebug("End = ". print_r(date('r',$end_date)));
   $category = explode(',',$reportinfo["service_category"]);            
   $hgnr = 0;
   $reportingTimePeriod = getreportingTimePeriod();
@@ -104,66 +109,74 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
   $totalservices = 0;
   $okh = 0;
   $oks = 0;
-# Main Report summary:
-  $templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-template.odt";
+# Main Report summary:  
+  $templfile = $reportinfo["report_template"];
   if (file_exists($templfile)) {
     $time = time();
     $endDay = date("d", $time);
     $endYear = date("Y", $time);
     $endMonth = date("m", $time);
-    $ReportFile = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/" .$endYear."-".$endMonth."-".$endDay."_SLAReport.odt";
+    $tpl_parts = pathinfo($templfile);
+    $ReportFile = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/" .$endYear."-".$endMonth."-".$endDay 
+      ."_SLA_Report." . $tpl_parts['extension'];
+
     echo "The SLA template file $templfile will be used to generate $ReportFile";
     $Allfiles[] = $ReportFile;
-    /*
-#Testdata:
-      $sla_data[] = array('hgroup'=> 'Gruppe1', 'repfile'=> 'File1', 'OK'=>91, 'hnr'=>1, 'events'=>123);
-      $sla_data[] = array('hgroup'=> 'Gruppe1', 'repfile'=> 'File1', 'OK'=>91, 'hnr'=>1, 'events'=>123);
-      $sla_data[] = array('hgroup'=> 'Gruppe1', 'repfile'=> 'File1', 'OK'=>91, 'hnr'=>1, 'events'=>123);
-*/
   } else {
     echo "The SLA template file $templfile does not exist";
   }
   myDebug("Categories: ". print_r($category, true));
 
   print "<pre>\n";
+
 ############# HostGroups: //////////////////
   if (isset($hosts) && count($hosts) > 0) {
-    //	      print_r($reportinfo);
     foreach ( $hosts['report_hgs'] as $hgs_id ) {
       $group_name = getMyHostGroupName($hgs_id);
       
       myDebug("Processing HG ( ". print_r($hgs_id, true) . " ) " . $group_name . " ," . getMyHostGroupField($hgs_id,"hg_alias"));
       $stats = array();
       $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
-      //		    print_r($l);
-      //              print_r($stats);
       $average = $stats["average"];
       myDebug("Summary: ". print_r($stats["average"], true) );
-      // $sla_ok = $stats["average"]['UP_MP'];
 
       myDebug("Generate pdf file");
 
       $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
       myDebug("Generated file: ". $pdf->FileName);
+      $grp_comment = "Hostgroup comment: " . getMyHostGroupField($hgs_id,"hg_comment");
+      $pdf->writeHTML($grp_comment); 
 
       myDebug("Generate HOST stats");
       pdfHosts($pdf, $stats);
+
       //		  myDebug("Generate Timeline stats");
       // pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+
       myDebug("Averages: ". print_r($average, true) );
       $up = $average['UP_MP'];
       $sla_data[] = array('hgroup'=> "Hostgroup " . $group_name
 			  ,'repfile'=>basename($pdf->FileName)
 			  ,'UP'=>$up
 			  ,'down'=>$average['DOWN_MP']
-			  ,'nosla'=>$average['MAINTENANCE_TP']
 			  ,'unknown'=>$average['UNREACHABLE_MP']
+			  ,'UP_A'=>$average['UP_A'] 
+			  ,'ok'=> ''
+			  ,'warn'=> ''
+			  ,'crit'=> ''
+			  ,'ok_a'=> ''
+			  ,'warn_a'=> ''
+			  ,'crit_a'=> ''
+			  ,'down_a'=>  $average['DOWN_A']
+			  ,'unknown_a'=>$average['UNREACHABLE_A']
+			  ,'nosla'=>$average['MAINTENANCE_TP']
 			  ,'undet'=>$average['UNDETERMINED_TP']
 			  ,'hnr'=>$pdf->statlines
 			  ,'events'=>$pdf->events
+			  ,'comment'=>$grp_comment
 			  );
-     	// mean = (mean*nold + new*nnew)/(nold+nnew)
 
+     	// mean = (mean*nold + new*nnew)/(nold+nnew)
 	$okh = ($okh * $totalhosts + $up * $pdf->statlines) /($totalhosts + $pdf->statlines);
 	$totalhosts += $pdf->statlines;
 
@@ -177,29 +190,40 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
 	myDebug("Generate SERVICES stats for service category( " .$hgnr . " ) = " . $category[$hgnr] . " ".getMyCategorieField($category[$hgnr],'sc_description') ." in  hostgroup " . $hgs_id );
 
 	$stats = array();
-#		      list($stats,$servStats,$hostStats) = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category);
 	$stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category[$hgnr]);
 	myDebug("Summary: ". print_r($stats["average"], true) );
-	// $sla_ok = $stats["average"]['OK_MP'];
-	// $sla_ok += $stats["average"]['WARNING_MP'];
-      $average = $stats["average"];
-      myDebug("Averages for services in hostgroup: ". print_r($average, true) );
+	$average = $stats["average"];
+	myDebug("Averages for services in hostgroup: ". print_r($average, true) );
 
 	$pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
 	//		      		    print_r($stats);
+	$grp_comment = "Host group comment: " .getMyHostGroupField($hgs_id,"hg_comment") 
+	  . "\nService category: " . getMyCategorieField($category[$hgnr],'sc_description');
+	$pdf->writeHTML($grp_comment); 
+
 	pdfServices($pdf, $stats,"Services in hostggroup state");
-	//	$Allfiles[] = pdfWriteFile($pdf);
-	//	$sla_data[] = array('hgroup'=> $group_name . "services", 'repfile'=>basename($pdf->FileName), 'OK'=>$sla_ok, 'hnr'=>$pdf->statlines, 'events'=>$pdf->events);
+
 	$up = $average['OK_MP'] + $average['WARNING_MP'];
+	$up_a = $average['OK_A'] + $average['WARNING_A'];
 	$sla_data[] = array('hgroup'=> $group_name . " services"
 			    ,'repfile'=>basename($pdf->FileName)
-			    ,'UP'=>$up
-			    ,'down'=>$average['CRITICAL_MP']
-			    ,'nosla'=>$average['MAINTENANCE_TP']
+			    ,'UP'=>$up 
+			    ,'ok'=> $average['OK_MP']
+			    ,'warn'=> $average['WARNING_MP']
+			    ,'crit'=> $average['CRITICAL_MP']
+			    ,'down'=> $average['CRITICAL_MP']
 			    ,'unknown'=>$average['UNKNOWN_MP']
+			    ,'UP_A'=>$up_a 
+			    ,'ok_a'=> $average['OK_A']
+			    ,'warn_a'=> $average['WARNING_A']
+			    ,'crit_a'=> $average['CRITICAL_A']
+			    ,'down_a'=> $average['CRITICAL_A']
+			    ,'unknown_a'=>$average['UNKNOWN_A']
+			    ,'nosla'=>$average['MAINTENANCE_TP']
 			    ,'undet'=>$average['UNDETERMINED_TP']
 			    ,'hnr'=>$pdf->statlines
 			    ,'events'=>$pdf->events
+			    ,'comment'=>$grp_comment
 			    );
 	$oks = ($oks * $totalservices + $up * $pdf->statlines) /($totalservices + $pdf->statlines);
 	$totalservices += $pdf->statlines;
@@ -223,19 +247,36 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
       $average = $stats["average"];
       myDebug("Averages for servicegroup: ". print_r($average, true) );
       $pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $stats, $reportinfo );
+      $grp_comment = "Service group comment: " . getMyServiceGroupField($sg_id,"sg_comment");
+      $pdf->writeHTML($grp_comment); 
+
       pdfServices($pdf, $stats,"Services group state");
       //      $sla_data[] = array('hgroup'=> $group_name , 'repfile'=>basename($pdf->FileName), 'OK'=>$sla_ok, 'hnr'=>$pdf->statlines, 'events'=>$pdf->events);
       $up = $average['OK_MP'] + $average['WARNING_MP'];
+      $up_a = $average['OK_A'] + $average['WARNING_A'];
       $sla_data[] = array('hgroup'=> "Servicegrp " . $group_name
-			  ,'repfile'=>basename($pdf->FileName)
-			  ,'UP'=>$up
-			  ,'down'=>$average['CRITICAL_MP']
-			  ,'nosla'=>$average['MAINTENANCE_TP']
-			  ,'unknown'=>$average['UNKNOWN_MP']
-			  ,'undet'=>$average['UNDETERMINED_TP']
-			  ,'hnr'=>$pdf->statlines
-			  ,'events'=>$pdf->events
-			  );
+			    ,'repfile'=>basename($pdf->FileName)
+			    ,'UP'=>$up 
+			    ,'ok'=> $average['OK_MP']
+			    ,'warn'=> $average['WARNING_MP']
+			    ,'crit'=> $average['CRITICAL_MP']
+			    ,'down'=>  $average['CRITICAL_MP']
+			    ,'unknown'=>$average['UNKNOWN_MP']
+			    ,'UP_A'=>$up_a 
+			    ,'ok_a'=> $average['OK_A']
+			    ,'warn_a'=> $average['WARNING_A']
+			    ,'crit_a'=> $average['CRITICAL_A']
+			    ,'down_a'=> $average['CRITICAL_A']
+			    ,'unknown_a'=>$average['UNKNOWN_A']
+			    ,'nosla'=>$average['MAINTENANCE_TP']
+			    ,'undet'=>$average['UNDETERMINED_TP']
+			    ,'hnr'=>$pdf->statlines
+			    ,'events'=>$pdf->events
+			    ,'comment'=>$grp_comment
+			    );
+
+
+
 	$oks = ($oks * $totalservices + $up * $pdf->statlines) /($totalservices + $pdf->statlines);
 	$totalservices += $pdf->statlines;
 
@@ -252,8 +293,6 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
     print $centreon_path;
     include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_class.php");
     include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_plugin_opentbs.php");
-#	    include_once('tbs_class.php'); // Load the TinyButStrong template engine
-#	    include_once('../tbs_plugin_opentbs.php'); // Load the OpenTBS plugin
 
     // prevent from a PHP configuration problem when using mktime() and date()
     if (version_compare(PHP_VERSION,'5.1.0')>=0) {
@@ -261,13 +300,6 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
 	date_default_timezone_set('UTC');
       }
     }
-
-    /* #Mer Testdata:
-      $sla_data[] = array('hgroup'=> 'Gruppe2', 'repfile'=> 'File2', 'OK'=>92, 'hnr'=>2, 'events'=>123);
-      $sla_data[] = array('hgroup'=> 'Gruppe3', 'repfile'=> 'File3', 'OK'=>93, 'hnr'=>3, 'events'=>123);
-      $sla_data[] = array('hgroup'=> 'Gruppe4', 'repfile'=> 'File4', 'OK'=>94, 'hnr'=>4, 'events'=>123);
-    */
-
     // Initialize the TBS instance
     $TBS = new clsTinyButStrong; // new instance of TBS
     $TBS->Plugin(TBS_INSTALL, OPENTBS_PLUGIN); // load the OpenTBS plugin
@@ -285,8 +317,8 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
     $periodlist = getPeriodListFork(); 
     $GLOBALS['period'] =   $periodlist[$reportinfo['period']];
     $TBS->LoadTemplate($templfile, OPENTBS_ALREADY_UTF8); // Also merge some [onload] automatic fields (depends of the type of document).
-    $GLOBALS['okh'] = $okh; 
-    $GLOBALS['oks'] = $oks;
+    $GLOBALS['okh'] = round($okh,2); 
+    $GLOBALS['oks'] = round($oks,2);
 
     $GLOBALS['cam'] = ''; 
     $GLOBALS['author'] = "Centreon"; 
@@ -302,10 +334,9 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
 
     $TBS->Show(OPENTBS_FILE, $ReportFile);
 
-    ###################3
   }
 
-
+#### Summary & mail
 
   print "</pre>\n";
   $files = array();
@@ -327,12 +358,6 @@ function RunNowReportInDB ($report_id = null, $report_arr = array()) {
     print "<p>Generated, but NO mail sent, report is not active <p>\n";
   }
 
-
-  $files = null;
-  $Allfiles = null;
-  $emails = null;
-  $services = null ;
-  $hosts = null;
 }
 
 
@@ -394,16 +419,26 @@ function getDateSelect_predefined_Fork($period){
   $day = date("d", $time);
   $year = date("Y", $time);
   $month = date("m", $time);
+
   if (!is_null($period)){
     if($period == "yesterday"){
       $start_date = mktime(0, 0, 0, $month, $day - 1, $year);
       $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
     } else if($period == "thisweek"){
-      $dd = (date("D",mktime(24, 0, 0, $month, $day - 1, $year)));
+      $dd = (date("D",mktime(0, 0, 0, $month, $day, $year))); // today@ 00:00:00
       for($ct = 1; $dd != "Mon" ;$ct++)
 	$dd = (date("D",mktime(0, 0, 0, $month, ($day - $ct), $year)));
-      $start_date = mktime(0, 0, 0, $month, $day - $ct, $year);
-      $end_date = mktime(24, 0, 0, $month, ($day - 1), $year);
+      $start_date = mktime(24, 0, 0, $month, $day - $ct, $year);
+      $end_date = mktime(0, 0, 0, $month, ($day), $year);
+    } else if($period == "lastweek"){
+      $dd = (date("D",mktime(0, 0, 0, $month, $day - 7, $year)));
+      for($ct = 8; $dd != "Mon" ;$ct++) {
+	$dd = (date("D",mktime(0, 0, 0, $month, ($day - $ct), $year)));
+	//	print_r( $ct . " ".  $dd . " start_date = " . mktime(0, 0, 0, $month, $day - $ct, $year) . "\n");
+      }
+      
+      $start_date = mktime(24, 0, 0, $month, $day - $ct, $year);
+      $end_date = mktime(24, 0, 0, $month, ($day - $ct + 7), $year);
     } else if($period == "last7days"){
       $start_date = mktime(0, 0, 0, $month, $day - 7, $year);
       $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
@@ -439,6 +474,7 @@ function getDateSelect_predefined_Fork($period){
     $start_date = mktime(0, 0, 0, $month, $day - 1, $year);
     $end_date = mktime(24, 0, 0, $month, $day - 1, $year);
   }
+
   if ($start_date > $end_date) {
     $start_date = $end_date;
   }
@@ -453,6 +489,7 @@ function getPeriodListFork(){
   $periodList[""] = "";
   $periodList["yesterday"] = _("Yesterday");
   $periodList["thisweek"] = _("This Week");
+  $periodList["lastweek"] = _("Last Week");
   $periodList["last7days"] = _("Last 7 Days");
   $periodList["thismonth"] = _("This Month");
   $periodList["last30days"] = _("Last 30 Days");
@@ -1088,11 +1125,11 @@ function multipleReportInDB ($reports = array(), $nbrDup = array(), $host = NULL
 	      //$fields["service_hgPars"] = "";
 	      while($report =& $DBRESULT->fetchRow())	{
 		if ($report["host_host_id"]) {
-		  $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', NULL, '".$report["host_host_id"]."',  '".$maxId["MAX(id)"]."')");
+		  $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', NULL, '".$report["host_host_id"]."',  '".$maxId["MAX(report_id)"]."')");
 		  //$fields["service_hPars"] .= $service["host_host_id"] . ",";
 		}
 		else if ($report["hostgroup_hg_id"]) {
-		  $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', '".$report["hostgroup_hg_id"]."', NULL, '".$maxId["MAX(id)"]."')");
+		  $DBRESULT2 =& $pearDB->query("INSERT INTO pdfreports_host_report_relation VALUES ('', '".$report["hostgroup_hg_id"]."', NULL, '".$maxId["MAX(report_id)"]."')");
 		  //$fields["service_hgPars"] .= $service["hostgroup_hg_id"] . ",";
 		}
 	      }
@@ -1196,6 +1233,16 @@ function getMyHostGroupField($hg_id = NULL, $field)
   if ($row[$field])
     return html_entity_decode($row[$field], ENT_QUOTES, "UTF-8");
   return NULL;
+}
+
+function getMyServiceGroupField($sg_id = NULL, $field) {
+  if (!$sg_id)
+    return;
+  global $pearDB;
+
+  $DBRESULT = $pearDB->query("SELECT $field FROM servicegroup WHERE sg_id = '" . CentreonDB::escape($sg_id) . "'");
+  $row = $DBRESULT->fetchRow();
+  return $row[$field];
 }
 
 function getMyCategorieField($sc_id = NULL, $field) {
@@ -1326,7 +1373,7 @@ function getMyCategorieField($sc_id = NULL, $field) {
 			$ret["service_alias"] = str_replace('\\', "#BS#", $ret["service_alias"]);
 		}*/
 		$rq = "INSERT INTO pdfreports_reports " .
-				"(name, report_description, period, report_title, subject, mail_body, retention, service_category, report_comment, activate) " .
+				"(name, report_description, period, report_title, subject, mail_body, retention, service_category, report_template, report_comment, activate) " .
 				"VALUES ( ";
 				isset($ret["name"]) && $ret["name"] != NULL ? $rq .= "'".$ret["name"]."', ": $rq .= "NULL, ";
 				isset($ret["report_description"]) && $ret["report_description"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["report_description"], ENT_QUOTES))."', ": $rq .= "NULL, ";
@@ -1336,6 +1383,7 @@ function getMyCategorieField($sc_id = NULL, $field) {
 				isset($ret["mail_body"]) && $ret["mail_body"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["mail_body"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 				isset($ret["retention"]) && $ret["retention"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["retention"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 				isset($ret["service_category"]) && $ret["service_category"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["service_category"], ENT_QUOTES))."', ": $rq .= "NULL, ";
+				isset($ret["report_template"]) && $ret["report_template"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["report_template"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 
 
 				if (isset($ret["report_comment"]) && $ret["report_comment"])	{
@@ -1396,6 +1444,8 @@ function getMyCategorieField($sc_id = NULL, $field) {
 
 		$rq .= "service_category = ";
 		isset($ret["service_category"]) && $ret["service_category"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["service_category"], ENT_QUOTES))."', ": $rq .= "NULL, ";
+		$rq .= "report_template = ";
+		isset($ret["report_template"]) && $ret["report_template"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["report_template"], ENT_QUOTES))."', ": $rq .= "NULL, ";
 
 		$rq .= "report_comment = ";
 		$ret["report_comment"] = str_replace("/", '#S#', $ret["report_comment"]);
@@ -1416,6 +1466,7 @@ function getMyCategorieField($sc_id = NULL, $field) {
 		$fields["mail_body"] = htmlentities($ret["mail_body"], ENT_QUOTES);
 		$fields["retention"] = htmlentities($ret["retention"], ENT_QUOTES);			
 		$fields["service_category"] = htmlentities($ret["service_category"], ENT_QUOTES);			
+		$fields["report_template"] = htmlentities($ret["report_template"], ENT_QUOTES);			
 		$fields["report_comment"] = htmlentities($ret["report_comment"], ENT_QUOTES);
 		//$oreon->CentreonLogAction->insertLog("service", $service_id["MAX(service_id)"], getHostServiceCombo($service_id, htmlentities($ret["service_description"], ENT_QUOTES)), "c", $fields);
 		//$oreon->user->access->updateACL();
@@ -1460,6 +1511,10 @@ function getMyCategorieField($sc_id = NULL, $field) {
 		if (isset($ret["service_category"]) && $ret["service_category"] != NULL) {
 			$rq .= "service_category = '".htmlentities($ret["service_category"], ENT_QUOTES)."', ";
 			$fields["service_category"] = htmlentities($ret["service_category"], ENT_QUOTES);
+		}
+		if (isset($ret["report_template"]) && $ret["report_template"] != NULL) {
+			$rq .= "report_template = '".htmlentities($ret["report_template"], ENT_QUOTES)."', ";
+			$fields["report_template"] = htmlentities($ret["report_template"], ENT_QUOTES);
 		}
 
 		if (isset($ret["report_activate"]["report_activate"]) && $ret["report_activate"]["report_activate"] != NULL) {

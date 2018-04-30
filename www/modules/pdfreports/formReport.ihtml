@@ -17,6 +17,7 @@
 		
 		<tr class="list_lvl_1"><td class="ListColLvl1_name" colspan="2"><img src='./img/icones/16x16/text_rich_marked.gif'>&nbsp;&nbsp;{$form.header.report_information}</td></tr>
 		<tr class="list_one"><td class="FormRowField">{$form.report_title.label}</td><td class="FormRowValue">{$form.report_title.html}</td></tr>			
+		<tr class="list_one"><td class="FormRowField">{$form.report_template.label}</td><td class="FormRowValue">{$form.report_template.html}</td></tr>			
 		<tr class="list_two"><td class="FormRowField">{$form.subject.label}</td><td class="FormRowValue">{$form.subject.html}</td></tr>		
 		<tr class="list_one"><td class="FormRowField">{$form.mail_body.label}</td><td class="FormRowValue">{$form.mail_body.html}</td></tr>		
 		<tr class="list_two"><td class="FormRowField">{$form.period.label}</td><td class="FormRowValue">{$form.period.html}</td></tr>

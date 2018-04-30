@@ -127,6 +127,8 @@ echo "[".date("Y-m-d H:i:s")."] Start generating reports for ". $argv[1] ."\n";
 		foreach ( $reports as $report_id => $name ) {
 			//print_r($report_id);
 		        echo "[".date("Y-m-d H:i:s")."] Report ". $name ."\n";
+			GenerateReport ($report_id);
+	 /*
 			$hosts = array();
 			$reportinfo = array();
 			$hosts = getHostReport($report_id);
@@ -212,7 +214,9 @@ echo "[".date("Y-m-d H:i:s")."] Start generating reports for ". $argv[1] ."\n";
 			$emails = null;
 			$services = null ;
 			$hosts = null;
+	 */	
 		}
+	 
 
 	} catch (Exception $e) {
 		programExit($e->getMessage());

@@ -174,6 +174,7 @@ error_reporting(E_ALL);
 	
 
 	$form->addElement('select', 'period', _("Period"), $periodList);
+	$form->addElement('text', 'report_template', _("Report Template"), $attrsText);
 	$form->addElement('text', 'report_title', _("Report Title"), $attrsText);
 	$form->addElement('text', 'subject', _("Mail Subject"), $attrsText);
 	$form->addElement('textarea', 'mail_body', _("Mail body"), $attrsTextarea);	
@@ -206,7 +207,7 @@ error_reporting(E_ALL);
 	$ams3->setButtonAttributes('remove', array('value' => _("Delete")));
 	$ams3->setElementTemplate($template);
 	echo $ams3->getElementJs(false);	
-	$form->addElement('text', 'service_category', _("Create report for services in category ID  "), $attrsText2);
+	$form->addElement('text', 'service_category', _("Create report for services in category ID,<br> comma separated lists matching hostgroup sequence.  "), $attrsText);
 	
 	/*
 	 *  Hosts 
