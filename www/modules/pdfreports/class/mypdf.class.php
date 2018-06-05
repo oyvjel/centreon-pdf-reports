@@ -177,6 +177,19 @@ EOD;
 
 EOD;
 
+	$csv = <<<EOD
+Hosts group state;
+State;Total Time;SLA Time;Alerts;
+UP;$UP_TP_AV%;$UP_MP_AV%;$UP_A_AV;
+DOWN;$DOWN_TP_AV %;$DOWN_MP_AV %;$DOWN_A_AV;
+UNREACHABLE;$UNREACHABLE_TP_AV %;$UNREACHABLE_MP_AV %;$UNREACHABLE_A_AV;
+NoSLA;$MAINTENANCE_TP_AV %;$MAINTENANCE_MP_AV %;$MAINTENANCE_A_AV;
+UNDETERMINED;$UNDETERMINED_TP_AV %; 
+Total;;;$TOTAL_A_AV;
+
+
+EOD;
+
 
 
 
@@ -194,7 +207,7 @@ if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
    $HEADER_WIDTH = "8";
 }
 
-
+$csv .= "Host;UP;UP_SLA;alerts;Down;Down_SLA;alerts;Unreachable;Unreachable_SLA;alerts;NoSLA;Undetermined;\n";
 
 $tbl2 = <<<EOD
 
@@ -262,13 +275,17 @@ $UNREACHABLE_MP = $tab["UNREACHABLE_MP"];
 $UNREACHABLE_A = $tab["UNREACHABLE_A"];
 if (isset ($tab["MAINTENANCE_TP"])) {
   $MAINTENANCE_TP =  '<td style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
+  $NoSLA_TP = $tab["MAINTENANCE_TP"];
   
 } else {
   $MAINTENANCE_TP = "";
+  $NoSLA_TP = "";
 }
 $UNDETERMINED_TP = $tab["UNDETERMINED_TP"];
 
 $BACKGROUND_COLOR = ( $i % 2 ? "EDF4FF": "F7FAFF"); 
+
+$csv .= "$NAME;$UP_TP;$UP_MP;$UP_A;$DOWN_TP;$DOWN_MP;$DOWN_A;$UNREACHABLE_TP;$UNREACHABLE_MP;$UNREACHABLE_A;$NoSLA_TP;$UNDETERMINED_TP;\n";
 
 $tbl2 .= <<<EOD
 
@@ -308,6 +325,7 @@ $this->writeHTML($tbl1, true, false, false, false, '');
 $this->writeHTML($tbl2, true, false, false, false, '');
 
 @unlink($piechart_img) ;
+return $csv;
 
 }
 

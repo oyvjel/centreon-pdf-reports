@@ -40,7 +40,7 @@ error_reporting(E_ALL);
         require_once("DB-Func.php");
 
 
-  $debug = true;
+#  $debug = true;
 
 	## Get centreon version
 	/*
@@ -66,40 +66,44 @@ function shutdown()
 { 
   $a=error_get_last(); 
   if($a==null)   
-    echo "No errors"; 
+    myDebug( "No errors"); 
   else 
-    print_r($a); 
+    myDebug( "<pre>\n" . print_r($a, true) . "</pre>\n"); 
   
 } 
 
 
 function RunNowReportInDB ($report_id = null, $report_arr = array()) {
 
-  register_shutdown_function('shutdown'); 
+  //  register_shutdown_function('shutdown'); 
 	  
   ini_set('max_execution_time', 900);
   myDebug("Max execution time set to 900 sec");
 
   ini_set('memory_limit','1G');
+  print "<pre>\n";
   GenerateReport($report_id);
+  print "</pre>\n";
+
 }
 
 #####
 function GenerateReport ($report_id = null) {	  
 #  if (!$report_id && !count($report_arr)) return;
   if (!$report_id) return;
-  global $pearDB, $oreon;
+  global $pearDB, $oreon, $debug;
   $hosts = array();
   $reportinfo = array();
   $hosts = getHostReport($report_id);
   $reportinfo = getReportInfo($report_id);
+  $debug = $reportinfo['bdebug'];
   $services = getServiceGroupReport($report_id);
   $dates = getPeriodToReportFork($reportinfo['period']);
   myDebug("Period = ". print_r($dates, true));
   $start_date = $dates[0] ;
   $end_date = $dates[1];
-  myDebug("Start = ". print_r(date('r',$start_date)));
-  myDebug("End = ". print_r(date('r',$end_date)));
+  myDebug("Start = ". date('r',$start_date));
+  myDebug("End = ". date('r',$end_date));
   $category = explode(',',$reportinfo["service_category"]);            
   $hgnr = 0;
   $reportingTimePeriod = getreportingTimePeriod();
@@ -109,6 +113,11 @@ function GenerateReport ($report_id = null) {
   $totalservices = 0;
   $okh = 0;
   $oks = 0;
+
+  $csvgen = $reportinfo['bcsv'];
+  $tlgen = $reportinfo['btimeline'];
+  $sumonly = $reportinfo['bsummary_only'];
+
 # Main Report summary:  
   $templfile = $reportinfo["report_template"];
   if (file_exists($templfile)) {
@@ -120,14 +129,13 @@ function GenerateReport ($report_id = null) {
     $ReportFile = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/" .$endYear."-".$endMonth."-".$endDay 
       ."_SLA_Report." . $tpl_parts['extension'];
 
-    echo "The SLA template file $templfile will be used to generate $ReportFile";
+    myDebug("The SLA template file $templfile will be used to generate $ReportFile \n");
     $Allfiles[] = $ReportFile;
   } else {
-    echo "The SLA template file $templfile does not exist";
+    myDebug("The SLA template file $templfile does not exist \n");
   }
   myDebug("Categories: ". print_r($category, true));
 
-  print "<pre>\n";
 
 ############# HostGroups: //////////////////
   if (isset($hosts) && count($hosts) > 0) {
@@ -148,10 +156,22 @@ function GenerateReport ($report_id = null) {
       $pdf->writeHTML($grp_comment); 
 
       myDebug("Generate HOST stats");
-      pdfHosts($pdf, $stats);
+      $csv = pdfHosts($pdf, $stats);
 
-      //		  myDebug("Generate Timeline stats");
-      // pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+# CSV file::::::::
+      if ($csvgen){ 
+	$csvfile = $pdf->FileName;
+	$csv_parts = pathinfo($csvfile);
+	$csvfile = $csv_parts['dirname'] ."/" . $csv_parts['filename'] . ".csv"; 
+	myDebug("csvfile: ". $csvfile );
+# WRITE the file....
+	file_put_contents($csvfile, $csv);
+	$Allfiles[] = $csvfile; 
+      }
+      if ($tlgen){ 
+	myDebug("Generate Timeline stats");
+	pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+      }
 
       myDebug("Averages: ". print_r($average, true) );
       $up = $average['UP_MP'];
@@ -180,10 +200,15 @@ function GenerateReport ($report_id = null) {
 	$okh = ($okh * $totalhosts + $up * $pdf->statlines) /($totalhosts + $pdf->statlines);
 	$totalhosts += $pdf->statlines;
 
-      myDebug("Write pdf to file");
-      $filename = pdfWriteFile($pdf); # pdf object is destroyed!!!
-      $Allfiles[] = $filename; 
-
+	if ($sumonly){
+	  $i = count($sla_data) -1;
+	  $sla_data[$i]['repfile'] = 'na';
+	  unset($pdf);
+	}else{  
+	  myDebug("Write pdf to file");
+	  $filename = pdfWriteFile($pdf); # pdf object is destroyed!!!
+	  $Allfiles[] = $filename; 
+	}
 ############# Services for hosts in hostgrp: //////////////////
       if (isset($category[$hgnr]) && is_numeric ($category[$hgnr]) ) {
 	unset($stats);
@@ -227,9 +252,14 @@ function GenerateReport ($report_id = null) {
 			    );
 	$oks = ($oks * $totalservices + $up * $pdf->statlines) /($totalservices + $pdf->statlines);
 	$totalservices += $pdf->statlines;
-
-	$filename = pdfWriteFile($pdf);
-	$Allfiles[] = $filename; 
+	if ($sumonly){
+	  $i = count($sla_data) -1;
+	  $sla_data[$i]['repfile'] = 'na';
+	  unset($pdf);
+	}else{  
+	  $filename = pdfWriteFile($pdf);
+	  $Allfiles[] = $filename; 
+	}
       }
       $hgnr++;
     }
@@ -279,8 +309,14 @@ function GenerateReport ($report_id = null) {
 
 	$oks = ($oks * $totalservices + $up * $pdf->statlines) /($totalservices + $pdf->statlines);
 	$totalservices += $pdf->statlines;
-
-      $Allfiles[] = pdfWriteFile($pdf);
+	if ($sumonly){
+	  $i = count($sla_data) -1;
+	  $sla_data[$i]['repfile'] = 'na';
+	  unset($pdf);
+	}else{  
+	  $filename = pdfWriteFile($pdf);
+	  $Allfiles[] = $filename; 
+	}
     }
   }
 
@@ -320,7 +356,7 @@ function GenerateReport ($report_id = null) {
     $GLOBALS['okh'] = round($okh,2); 
     $GLOBALS['oks'] = round($oks,2);
 
-    $GLOBALS['cam'] = ''; 
+    $GLOBALS['kam'] = ''; 
     $GLOBALS['author'] = "Centreon"; 
  
     
@@ -338,7 +374,6 @@ function GenerateReport ($report_id = null) {
 
 #### Summary & mail
 
-  print "</pre>\n";
   $files = array();
   $b = getGeneralOptInfo("pdfreports_path_gen");
   print "<p>Generated files:<ul>\n";
@@ -348,6 +383,7 @@ function GenerateReport ($report_id = null) {
     print "<li><a href=\"$a\">". $file . "</a> </li>\n";
   }
   print "</ul>\n";
+
   if ($reportinfo['activate'] > 0 ) {
     $emails = getReportContactEmail($report_id);
 
@@ -1373,7 +1409,9 @@ function getMyCategorieField($sc_id = NULL, $field) {
 			$ret["service_alias"] = str_replace('\\', "#BS#", $ret["service_alias"]);
 		}*/
 		$rq = "INSERT INTO pdfreports_reports " .
-				"(name, report_description, period, report_title, subject, mail_body, retention, service_category, report_template, report_comment, activate) " .
+				"(name, report_description, period, report_title, subject, mail_body, retention,
+                                    service_category, report_template, report_comment, activate,
+                                    bcsv, btimeline, bsummary_only, bdebug  ) " .
 				"VALUES ( ";
 				isset($ret["name"]) && $ret["name"] != NULL ? $rq .= "'".$ret["name"]."', ": $rq .= "NULL, ";
 				isset($ret["report_description"]) && $ret["report_description"] != NULL ? $rq .= "'".addslashes(htmlentities($ret["report_description"], ENT_QUOTES))."', ": $rq .= "NULL, ";
@@ -1392,7 +1430,14 @@ function getMyCategorieField($sc_id = NULL, $field) {
 				}
 				isset($ret["report_comment"]) && $ret["report_comment"] != NULL ? $rq .= "'".htmlentities($ret["report_comment"], ENT_QUOTES)."', " : $rq .= "NULL, ";
 
-				isset($ret["activate"]["activate"]) && $ret["activate"]["activate"] != NULL ? $rq .= "'".$ret["activate"]["activate"]."'" : $rq .= "NULL";
+				isset($ret["activate"]["activate"]) && $ret["activate"]["activate"] != NULL ? $rq .= "'".$ret["activate"]["activate"]."', " : $rq .= "NULL, ";
+
+
+				isset($ret["reportOpts"]["bcsv"]) ? $rq .= "'".$ret["reportOpts"]["bcsv"]."', " : $rq .= "NULL, ";
+				isset($ret["reportOpts"]["btimeline"]) ? $rq .= "'".$ret["reportOpts"]["btimeline"]."', " : $rq .= "NULL, ";
+				isset($ret["reportOpts"]["bsummary_only"]) ? $rq .= "'".$ret["reportOpts"]["bsummary_only"]."', " : $rq .= "NULL, ";
+				isset($ret["reportOpts"]["bdebug"]) ? $rq .= "'".$ret["reportOpts"]["bdebug"]."' " : $rq .= "NULL ";
+
 				$rq .= ")";
 		$DBRESULT =& $pearDB->query($rq);
 		$DBRESULT =& $pearDB->query("SELECT MAX(report_id) FROM pdfreports_reports");
@@ -1422,7 +1467,6 @@ function getMyCategorieField($sc_id = NULL, $field) {
 			$ret["report_descriptionv"] = str_replace('/', "#S#", $ret["report_description"]);
 			$ret["report_description"] = str_replace('\\', "#BS#", $ret["report_description"]);
 		}
-
 		$rq = "UPDATE pdfreports_reports SET " ;
 		$rq .= "name = ";
 		isset($ret["name"]) && $ret["name"] != NULL ? $rq .= "'".$ret["name"]."', ": $rq .= "NULL, ";
@@ -1453,8 +1497,20 @@ function getMyCategorieField($sc_id = NULL, $field) {
 		isset($ret["report_comment"]) && $ret["report_comment"] != NULL ? $rq .= "'".htmlentities($ret["report_comment"], ENT_QUOTES)."', " : $rq .= "NULL, ";
 
 		$rq .= "activate = ";
-		isset($ret["activate"]["activate"]) && $ret["activate"]["activate"] != NULL ? $rq .= "'".$ret["activate"]["activate"]."'" : $rq .= "NULL ";
+		isset($ret["activate"]["activate"]) && $ret["activate"]["activate"] != NULL ? $rq .= "'".$ret["activate"]["activate"]."', " : $rq .= "NULL, ";
+
+		$rq .= "bcsv = ";
+		isset($ret["reportOpts"]["bcsv"]) ? $rq .= "'".$ret["reportOpts"]["bcsv"]."', " : $rq .= "NULL,";
+		$rq .= "btimeline = ";
+		isset($ret["reportOpts"]["btimeline"]) ? $rq .= "'".$ret["reportOpts"]["btimeline"]."', " : $rq .= "NULL, ";
+		$rq .= "bsummary_only = ";
+		isset($ret["reportOpts"]["bsummary_only"]) ? $rq .= "'".$ret["reportOpts"]["bsummary_only"]."', " : $rq .= "NULL, ";
+		$rq .= "bdebug = ";
+		isset($ret["reportOpts"]["bdebug"]) ? $rq .= "'".$ret["reportOpts"]["bdebug"]."' " : $rq .= "NULL ";
+
+
 		$rq .= "WHERE report_id = '".$report_id."'";
+
 		$DBRESULT =& $pearDB->query($rq);
 
 

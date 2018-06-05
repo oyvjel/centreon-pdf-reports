@@ -178,7 +178,20 @@ error_reporting(E_ALL);
 	$form->addElement('text', 'report_title', _("Report Title"), $attrsText);
 	$form->addElement('text', 'subject', _("Mail Subject"), $attrsText);
 	$form->addElement('textarea', 'mail_body', _("Mail body"), $attrsTextarea);	
-	$form->addElement('textarea', 'report_comment', _("Comments"), $attrsTextarea);
+        $form->addElement('textarea', 'report_comment', _("Comments"), $attrsTextarea);
+      
+
+        $report['reportOpts']['bcsv'] = $report['bcsv'];
+        $report['reportOpts']['btimeline'] = $report['btimeline'];
+        $report['reportOpts']['bsummary_only'] = $report['bsummary_only'];
+        $report['reportOpts']['bdebug'] = $report['bdebug'];
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'bcsv', '&nbsp;', _("CSV-file"));
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'btimeline', '&nbsp;', _("Timeline"));
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'bsummary_only', '&nbsp;', _("Summary Only"));
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'bdebug', '&nbsp;', _("Debug"));
+        $form->addGroup($repOpt, 'reportOpts', _("Report Options"), '&nbsp;&nbsp;');
+
+
 
 	/*
 	 *  Contact groups

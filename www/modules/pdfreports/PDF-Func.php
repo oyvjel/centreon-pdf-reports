@@ -163,7 +163,7 @@ function pdfHosts($pdf, $stats) {
   $header = array('Status', 'Time', 'Total Time', 'Mean Time', 'Alert');
   
   // print colored table
-  $pdf->ColoredTable($header, $data,$piechart_img );
+  return $pdf->ColoredTable($header, $data,$piechart_img );
 }
 function pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date){
 
