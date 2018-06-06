@@ -627,7 +627,7 @@ $tbl1 = <<<EOD
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
-		<th width="16%" >Host Name</th>
+		<th width="16%" >Host</th>
 		<th width="20%">Service</th>
 		<th width="10%">%</th>
 		<th width="3%">A</th>

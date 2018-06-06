@@ -222,11 +222,10 @@ function GenerateReport ($report_id = null) {
 
 	$pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
 	//		      		    print_r($stats);
-	$grp_comment = "Host group comment: " .getMyHostGroupField($hgs_id,"hg_comment") 
-	  . "\nService category: " . getMyCategorieField($category[$hgnr],'sc_description');
+	$grp_comment = "<p><b>Host group comment:</b><br>\n" .getMyHostGroupField($hgs_id,"hg_comment") . "\n<p>\n";
 	$pdf->writeHTML($grp_comment); 
-
-	pdfServices($pdf, $stats,"Services in hostggroup state");
+	$pdf->writeHTML("<hr>\n<b>Service category(" . $category[$hgnr] ."):</b> ". getMyCategorieField($category[$hgnr],'sc_description'));
+	pdfServices($pdf, $stats,"Services in hostggroup overview");
 
 	$up = $average['OK_MP'] + $average['WARNING_MP'];
 	$up_a = $average['OK_A'] + $average['WARNING_A'];
@@ -280,7 +279,7 @@ function GenerateReport ($report_id = null) {
       $grp_comment = "Service group comment: " . getMyServiceGroupField($sg_id,"sg_comment");
       $pdf->writeHTML($grp_comment); 
 
-      pdfServices($pdf, $stats,"Services group state");
+      pdfServices($pdf, $stats,"Services group overview");
       //      $sla_data[] = array('hgroup'=> $group_name , 'repfile'=>basename($pdf->FileName), 'OK'=>$sla_ok, 'hnr'=>$pdf->statlines, 'events'=>$pdf->events);
       $up = $average['OK_MP'] + $average['WARNING_MP'];
       $up_a = $average['OK_A'] + $average['WARNING_A'];
@@ -324,9 +323,7 @@ function GenerateReport ($report_id = null) {
   if (file_exists($templfile)) {
     // Include classes
     global $centreon_path;
-
     myDebug("Include TBS = ". print_r($centreon_path, true));
-    print $centreon_path;
     include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_class.php");
     include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_plugin_opentbs.php");
 
@@ -373,22 +370,49 @@ function GenerateReport ($report_id = null) {
   }
 
 #### Summary & mail
+  $summary = "\n<hr>\nUP hosts = ". $GLOBALS['okh'] ."%";
+  $summary .= "<br>\nUP services = ". $GLOBALS['oks'] ."%";
+
+  $summary .= '
+    <table border="1">
+	<tr style="background-color:#D5DFEB;" >
+		<th>Nr</th>
+		<th>Group</th>
+		<th>UP%</th>
+		<th>Nunber</th>
+		<th>Events</th>
+		<th>File</th>
+	</tr>';
+
+  foreach ($sla_data as $key => $tab) {
+    $summary .= "\n<tr><td>". $key . "</td><td>" 
+    . $tab['hgroup'] . "</td><td>" 
+    . $tab['UP'] . "</td><td>"
+    . $tab['hnr'] . "</td><td>"
+    . $tab['events'] . "</td><td>"
+    . $tab['repfile'] . "</td>"
+    . "</tr>\n"; 
+  }
+  $summary .= "</table>\n";
 
   $files = array();
   $b = getGeneralOptInfo("pdfreports_path_gen");
-  print "<p>Generated files:<ul>\n";
+  $summary .= "\n<p>Generated files:<ul>\n";
   foreach ( $Allfiles as $file) {
     $files[basename($file)]["url"] = $file;
     $a = str_replace($b,"/reports/",$file);
-    print "<li><a href=\"$a\">". $file . "</a> </li>\n";
+    $summary .= "<li><a href=\"$a\">". $file . "</a> </li>\n";
   }
-  print "</ul>\n";
+  $summary .= "</ul>\n";
+
+
+  print $summary;
 
   if ($reportinfo['activate'] > 0 ) {
     $emails = getReportContactEmail($report_id);
 
     mailer(getGeneralOptInfo("pdfreports_report_author"),
-	   getGeneralOptInfo("pdfreports_email_sender"),$emails,$reportinfo['subject'],$reportinfo['mail_body'] ,
+	   getGeneralOptInfo("pdfreports_email_sender"),$emails,$reportinfo['subject'],$reportinfo['mail_body'] . $summary,
 	   getGeneralOptInfo("pdfreports_smtp_server_address"),$files,$reportinfo['name'] );
   } else {
     print "<p>Generated, but NO mail sent, report is not active <p>\n";
@@ -775,6 +799,33 @@ function getSqlForHostgrpServices($hostgrp_id){
   return $sql;
 }
 
+function service_category($id,$category){
+  global $pearDB;
+   $query = "select s.service_id,s.service_template_model_stm_id,s.service_description, cat.sc_id
+     from service as s
+     LEFT JOIN service_categories_relation as cat ON cat.service_service_id = s.service_id
+     WHERE s.service_id = ? and (cat.sc_id = ? or cat.sc_id IS NULL)";
+
+   $DBRESULT = $pearDB->query($query,array($id,$category));
+  while ($row = $DBRESULT->fetchRow(MDB2_FETCHMODE_ORDERED)) {
+    // next if not inherited_category($row['host_id'], $category);
+
+#   for row in results:
+    $id = $row[0];
+    $template = $row[1];
+    $name = $row[2];
+    $value = $row[3];
+    myDebug("Service/tpl = ". $name. ", template = " . $template . ", value = " .$value); 
+    if ( $value != NULL ) { # implies value = category 
+	return array($name ."(" . $id . ")",$value);
+# if no value check parent template
+    }
+    if ($template != NULL) return service_category($template,$category);
+  }
+  $DBRESULT->free();
+  return array($name,NULL);
+}
+
 /*
  * Return a table ($serviceGroupStats) that contains availability (average with availability of all services from servicegroup)
  * and alerts (the sum of alerts of all services from servicegroup) for given servicegroup defined by $servicegroup_id
@@ -804,12 +855,13 @@ SELECT service_description, service_id, host_id, host_name
 FROM (" 
   . getSqlForHostgrpServices($hostgrp_id) . "
 ) as hgs";
-  if ( isset($category) and $category > 0){
-    // Should inherit category. TODO!
-    $query .= "
-  JOIN service_categories_relation as cat ON cat.service_service_id = hgs.service_id
-  WHERE cat.sc_id = '". $category ."'";
-  }
+#  if ( isset($category) and $category > 0){
+#    // Should inherit category. TODO!
+#    $query .= "
+#  JOIN service_categories_relation as cat ON cat.service_service_id = hgs.service_id
+#  WHERE cat.sc_id = '". $category ."'";
+#  }
+
   $query .= "
 ORDER BY host_name, service_description;";
 
@@ -823,6 +875,12 @@ ORDER BY host_name, service_description;";
     // ... or check for match in service-name?
 
     // next if not inherited_category($row['host_id'], $category);
+    if ( isset($category) and $category > 0){
+      list($servtpl, $cat) = service_category($row['service_id'],$category);
+      myDebug("Template = " . $servtpl . ", value = " . $cat); 
+
+      if ($cat != $category) continue;
+    }
 
     foreach ($serviceStatsLabels as $name) {
       $serviceStats[$count][$name] = 0;

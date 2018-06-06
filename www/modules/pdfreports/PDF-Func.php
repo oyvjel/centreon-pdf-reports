@@ -52,13 +52,13 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		  $filetag = $group_name;
 		} else if ($mode == "sgs") { // Servicegroup
 		  $group_name = getMyServiceGroupName($gid);
-		  $filetag = $group_name . "_srv";
+		  $filetag = $group_name . "_svsg";
 		  $subtitle = "Services in servicegroup " . $group_name;
 		} else if ($mode == "shg") { // SLA-services on hosts in hostgroup
 		  $mode = "sgs";
 		  $group_name = getMyHostGroupName($gid);
-		  $subtitle = "Services with SLA on hosts in hostgroup " .  $group_name;
-		  $filetag = $group_name . "_sla";
+		  $subtitle = "Services on hosts in hostgroup " .  $group_name;
+		  $filetag = $group_name . "_svgh";
 		}
 		//		define ('PDF_PAGE_ORIENTATION', 'P');
 		
