@@ -76,12 +76,14 @@ function shutdown()
 function RunNowReportInDB ($report_id = null, $report_arr = array()) {
 
   //  register_shutdown_function('shutdown'); 
+  print "<p>Generating reports....</p>\n";
 	  
   ini_set('max_execution_time', 900);
   myDebug("Max execution time set to 900 sec");
 
   ini_set('memory_limit','1G');
   print "<pre>\n";
+
   GenerateReport($report_id);
   print "</pre>\n";
 
@@ -400,7 +402,8 @@ function GenerateReport ($report_id = null) {
   $summary .= "\n<p>Generated files:<ul>\n";
   foreach ( $Allfiles as $file) {
     $files[basename($file)]["url"] = $file;
-    $a = str_replace($b,"/reports/",$file);
+#    $a = str_replace($b,"/reports/",$file);
+    $summary .= "<li><a href=\"https://monitoring.ncop.net" . $a . "\">". $file . "</a> </li>\n";
     $summary .= "<li><a href=\"$a\">". $file . "</a> </li>\n";
   }
   $summary .= "</ul>\n";
