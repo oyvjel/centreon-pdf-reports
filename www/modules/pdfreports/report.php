@@ -97,12 +97,7 @@ function ViewReports ($report_id = null) {
   $ReportDir = getGeneralOptInfo("pdfreports_path_gen") . $report_id . "/"; 
 
     $dir = $ReportDir . "*";
-  print "View reports in ".$ReportDir . "\n";
-
-
-
-#echo "p i funk = " .$p;
-#echo "path i funk = " .$path;
+#  print "View reports in ".$ReportDir . "\n";
 
     //$dir = substr(dirname($_SERVER['PHP_SELF']),strlen($_SERVER['DOCUMENT_ROOT']));
    $dir = "*";
@@ -116,7 +111,7 @@ function ViewReports ($report_id = null) {
 
   $dir = $ReportDir . $dir;
 
-echo "dir i funk = " .$dir;
+#echo "dir i funk = " .$dir;
 
 
 

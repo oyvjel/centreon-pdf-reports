@@ -341,12 +341,9 @@ function GenerateReport ($report_id = null) {
     ### Data:
     // define default header data
     $GLOBALS['title'] = $reportinfo["report_title"];
-    //$header = "Rapport de supervision du hostgroup ".$group_name;
-    //$ip = $_SERVER['HOSTNAME'];
     $GLOBALS['startDate'] = date("d/m/Y", $start_date);
     $GLOBALS['endDate'] = date("d/m/Y", $end_date);
     $GLOBALS['reportdate'] = date("Y-m-d", $time);
-    //    $interval = _("From") ." ".strftime("%A",$start_date). " ".$startDate." "._("to") ." ".strftime("%A",$time)." ".$endDate."\n";
     $GLOBALS['description'] = $reportinfo["report_description"];
     $GLOBALS['comment'] = $reportinfo["report_comment"];
     $periodlist = getPeriodListFork(); 
@@ -399,12 +396,18 @@ function GenerateReport ($report_id = null) {
 
   $files = array();
   $b = getGeneralOptInfo("pdfreports_path_gen");
+  // FQDN for host when called from cli uses gethostbyaddr("127.0.1.1"). Define fqdn for 127.0.1.1 in /etc/hosts. Ref Debian man hostname
+  $h = empty($_SERVER['HTTP_HOST']) ? 'https://'. gethostbyaddr("127.0.1.1") : 'https://'. $_SERVER['HTTP_HOST'];
   $summary .= "\n<p>Generated files:<ul>\n";
   foreach ( $Allfiles as $file) {
     $files[basename($file)]["url"] = $file;
-#    $a = str_replace($b,"/reports/",$file);
-    $summary .= "<li><a href=\"https://monitoring.ncop.net" . $a . "\">". $file . "</a> </li>\n";
-    $summary .= "<li><a href=\"$a\">". $file . "</a> </li>\n";
+    $u = str_replace($b,"/reports/",$file);
+    $a = str_replace($b,"",$file);
+ 
+    $summary .= '<li><a href="'.$h . $u . "\">". $file . "</a>. ";
+    $summary .= 'Download: <a href="'.$h.'/centreon/modules/pdfreports/viewreport.php?file='.$a.'">'.basename($file)."</a></li>\n ";
+
+#    $summary .= "<li><a href=\"$a\">". $file . "</a> </li>\n";
   }
   $summary .= "</ul>\n";
 
@@ -804,16 +807,14 @@ function getSqlForHostgrpServices($hostgrp_id){
 
 function service_category($id,$category){
   global $pearDB;
+  $name = NULL;
    $query = "select s.service_id,s.service_template_model_stm_id,s.service_description, cat.sc_id
      from service as s
      LEFT JOIN service_categories_relation as cat ON cat.service_service_id = s.service_id
      WHERE s.service_id = ? and (cat.sc_id = ? or cat.sc_id IS NULL)";
 
    $DBRESULT = $pearDB->query($query,array($id,$category));
-  while ($row = $DBRESULT->fetchRow(MDB2_FETCHMODE_ORDERED)) {
-    // next if not inherited_category($row['host_id'], $category);
-
-#   for row in results:
+  while ($row = $DBRESULT->fetchRow('MDB2_FETCHMODE_ORDERED')) {
     $id = $row[0];
     $template = $row[1];
     $name = $row[2];
@@ -835,7 +836,6 @@ function service_category($id,$category){
  */
 function getLogInDbForHostgrpServices($hostgrp_id, $start_date, $end_date, $reportTimePeriod,$category=NULL){
   global $pearDB;
-#  $category = 6;  //TODO: HARDCODED, SHOULD BE READ FROM REPORT CONFIG.
   $serviceStatsLabels = array();
   $serviceStatsLabels = getServicesStatsValueName();
   $status = array("OK", "WARNING", "CRITICAL", "UNKNOWN", "UNDETERMINED", "MAINTENANCE");
