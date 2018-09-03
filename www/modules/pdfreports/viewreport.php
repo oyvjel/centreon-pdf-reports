@@ -1,6 +1,15 @@
 <?php
 
+ini_set('display_errors',1);
+error_reporting(E_ALL);
 
+/**
+ * Configuration file
+ */
+$centreonConf = "@CENTREON_ETC@/centreon.conf.php";
+require_once $centreonConf;
+
+require_once "DB-Func.php";
 
 if(isset($_REQUEST["file"])){
   // Get parameters
@@ -10,8 +19,8 @@ if(isset($_REQUEST["file"])){
   // Remove any runs of periods (thanks falstro!)
   $file = mb_ereg_replace("([\.]{2,})", '', $file);
 
-  $filepath = "/var/www/reports/" . $file;
-
+  $filepath = getGeneralOptInfo("pdfreports_path_gen") . $file;
+                                                                      #
 
   if(file_exists($filepath)) {
     header('Content-Description: File Transfer');

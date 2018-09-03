@@ -45,20 +45,21 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		global $centreon_path;
 		$subtitle = "";
 #		$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $endYear.$endMonth.$endDay . "/";
-		
+		$periodList = getPeriodListFork();
+		$period = $periodList[$reportinfo["period"]];
 		if ($mode == "hgs") { // Hostgroup
 		  $group_name = getMyHostGroupName($gid);
 		  $subtitle = "Hosts in hostgroup " . $group_name;
-		  $filetag = $group_name;
+		  $filetag = $group_name . "_" . $period;
 		} else if ($mode == "sgs") { // Servicegroup
 		  $group_name = getMyServiceGroupName($gid);
-		  $filetag = $group_name . "_svsg";
+		  $filetag = $group_name . "_sgsv_" . $period;
 		  $subtitle = "Services in servicegroup " . $group_name;
 		} else if ($mode == "shg") { // SLA-services on hosts in hostgroup
 		  $mode = "sgs";
 		  $group_name = getMyHostGroupName($gid);
 		  $subtitle = "Services on hosts in hostgroup " .  $group_name;
-		  $filetag = $group_name . "_svgh";
+		  $filetag = $group_name . "_hgsv_" . $period;
 		}
 		//		define ('PDF_PAGE_ORIENTATION', 'P');
 		
@@ -67,7 +68,8 @@ function pdfGen($gid, $mode = NULL, $start_date, $end_date,$stats,$reportinfo){
 		$pdf = new MYPDF('P', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
 		//génération d'un nom de pdf
-		$time = time();
+		$time = $end_date;
+#		$time = time();
 		$pdf->DirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
 		if (!is_dir($pdf->DirName))
 		  mkdir($pdf->DirName,0775,true);

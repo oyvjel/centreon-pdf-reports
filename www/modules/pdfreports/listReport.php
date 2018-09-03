@@ -56,6 +56,7 @@
 	$tpl->assign("headerMenu_desc", _("Description"));
 	$tpl->assign("headerMenu_status", _("Status"));
 	$tpl->assign("headerMenu_period", _("Scheduling"));
+	$tpl->assign("headerMenu_scat", _("Service cat."));
 	$tpl->assign("headerMenu_options", _("Options"));
 	
 	/*
@@ -102,6 +103,7 @@
 						"RowMenu_desc" => myDecode(substr($report["report_description"], 0, 40)),
 						"RowMenu_status" => $tabStatus[$report["activate"]],
 						"RowMenu_schedule" => $periodList[myDecode($report["period"])],
+						"RowMenu_scat" => myDecode($report["service_category"]),
 						"RowMenu_options" => $moptions);
 		$style != "two" ? $style = "two" : $style = "one";
 	}

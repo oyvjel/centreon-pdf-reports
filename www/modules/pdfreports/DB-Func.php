@@ -99,6 +99,8 @@ function GenerateReport ($report_id = null) {
   $hosts = getHostReport($report_id);
   $reportinfo = getReportInfo($report_id);
   $debug = $reportinfo['bdebug'];
+  myDebug("Categories: ". print_r($category, true));
+
   $services = getServiceGroupReport($report_id);
   $dates = getPeriodToReportFork($reportinfo['period']);
   myDebug("Period = ". print_r($dates, true));
@@ -110,6 +112,7 @@ function GenerateReport ($report_id = null) {
   $hgnr = 0;
   $reportingTimePeriod = getreportingTimePeriod();
   $data = array();
+  $periodlist = getPeriodListFork(); 
 
   $totalhosts = 0;
   $totalservices = 0;
@@ -123,13 +126,14 @@ function GenerateReport ($report_id = null) {
 # Main Report summary:  
   $templfile = $reportinfo["report_template"];
   if (file_exists($templfile)) {
-    $time = time();
+    $time = $end_date;
+#    $time = time();
     $endDay = date("d", $time);
     $endYear = date("Y", $time);
     $endMonth = date("m", $time);
     $tpl_parts = pathinfo($templfile);
     $ReportFile = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/" .$endYear."-".$endMonth."-".$endDay 
-      ."_SLA_Report." . $tpl_parts['extension'];
+      ."_". $periodlist[$reportinfo['period']] . "_Report." . $tpl_parts['extension'];
 
     myDebug("The SLA template file $templfile will be used to generate $ReportFile \n");
     $Allfiles[] = $ReportFile;
@@ -346,7 +350,6 @@ function GenerateReport ($report_id = null) {
     $GLOBALS['reportdate'] = date("Y-m-d", $time);
     $GLOBALS['description'] = $reportinfo["report_description"];
     $GLOBALS['comment'] = $reportinfo["report_comment"];
-    $periodlist = getPeriodListFork(); 
     $GLOBALS['period'] =   $periodlist[$reportinfo['period']];
     $TBS->LoadTemplate($templfile, OPENTBS_ALREADY_UTF8); // Also merge some [onload] automatic fields (depends of the type of document).
     $GLOBALS['okh'] = round($okh,2); 
@@ -403,9 +406,15 @@ function GenerateReport ($report_id = null) {
     $files[basename($file)]["url"] = $file;
     $u = str_replace($b,"/reports/",$file);
     $a = str_replace($b,"",$file);
- 
-    $summary .= '<li><a href="'.$h . $u . "\">". $file . "</a>. ";
-    $summary .= 'Download: <a href="'.$h.'/centreon/modules/pdfreports/viewreport.php?file='.$a.'">'.basename($file)."</a></li>\n ";
+    // $u = rawurlencode($u); # Chrome does not decode %2F (/)in url (except for the error message ???). Firefox is OK.
+    // https://<server>/reports%2F1%2F2018-08-01_Last%20Month_Report.docx produces the message:
+    // The requested URL /reports/1/2018-08-01_Last Month_Report.docx was not found on this server.
+    // https://<server>/reports/1/2018-08-01_Last%20Month_Report.docx is OK
+    // translate only space:
+    $u = str_replace(" ","%20",$u);
+    $a = str_replace(" ","%20",$a);
+    $summary .= '<li><a href="'. $h . $u . "\">". $file . "</a>. ";
+    $summary .= 'Download: <a href="' . $h. '/centreon/modules/pdfreports/viewreport.php?file='. $a . '">'.basename($file)."</a></li>\n ";
 
 #    $summary .= "<li><a href=\"$a\">". $file . "</a> </li>\n";
   }
@@ -971,39 +980,39 @@ function getHGDayStat($id, $start_date, $end_date) {
   global $pearDB;
   global $pearDBO;
   global $oreon;
-
+  
   $i = 0;
-
-/*
- * getting all hosts from hostgroup
- */
-
-$hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
-if (count($hosts_id) == 0) {
-  return 'No hosts in group';
-}
-$str = "";
-foreach ($hosts_id as $hostId => $host_name) {
-  //  $host_stats = getLogInDbForHost($hostId, $start_date, $end_date, $reportTimePeriod);
-  if ($str != "") {
-    $str .= ", ";
+  
+  /*
+   * getting all hosts from hostgroup
+   */
+  
+  $hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
+  if (count($hosts_id) == 0) {
+    return 'No hosts in group';
   }
-  $str .= "'". $hostId ."'";
-  $i++;
-}
+  $str = "";
+  foreach ($hosts_id as $hostId => $host_name) {
+    //  $host_stats = getLogInDbForHost($hostId, $start_date, $end_date, $reportTimePeriod);
+    if ($str != "") {
+      $str .= ", ";
+    }
+    $str .= "'". $hostId ."'";
+    $i++;
+  }
 
-myDebug("Hosts in group: " . $str);
+  myDebug("Hosts in group: " . $str);
 
-//echo "Number of hosts in group = $i";
-//echo "Hostlist: $str";
-//echo "Start date $start_date";
-/*
- * Getting hostgroup stats evolution
- */
-#### TODO: $days_of_week = getReportDaysStr($reportTimePeriod);
+  //echo "Number of hosts in group = $i";
+  //echo "Hostlist: $str";
+  //echo "Start date $start_date";
+  /*
+   * Getting hostgroup stats evolution
+   */
+  #### TODO: $days_of_week = getReportDaysStr($reportTimePeriod);
 # To be compatible with Centreon getLogInDbForHost()
 
-$rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEvent`) as DOWN_A, "
+  $rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEvent`) as DOWN_A, "
     . "sum(`UNREACHABLEnbEvent`) as UNREACHABLE_A, "
     . "avg( `UPTimeScheduled` ) as UP_T, "
     . "avg( `DOWNTimeScheduled` ) as DOWN_T, "
@@ -1015,15 +1024,15 @@ $rq = "SELECT `date_start`, `date_end`, sum(`UPnbEvent`) as UP_A, sum(`DOWNnbEve
     . "AND `date_end` <= '".$end_date."' "
     . "GROUP BY `date_end`, `date_start` ORDER BY `date_start` desc";
 
-###    . "AND DATE_FORMAT( FROM_UNIXTIME( `date_start`), '%W') IN (".$days_of_week.") ".
+  ###    . "AND DATE_FORMAT( FROM_UNIXTIME( `date_start`), '%W') IN (".$days_of_week.") ".
 
-// echo "rq = $rq"; 
+  // echo "rq = $rq"; 
 
-myDebug("Query: " . $rq);
+  myDebug("Query: " . $rq);
 
-$DBRESULT = $pearDBO->query($rq);
+  $DBRESULT = $pearDBO->query($rq);
 
-$tbl = <<<EOD
+  $tbl = <<<EOD
 <style>
 table, td  {
   border-collapse: collapse;
@@ -1078,23 +1087,23 @@ EOD;
 
 
 
-$tbl .= "<table border=cellspacing=\"0\" cellpadding=\"1\" border=\"0\">\n".
-  "<tr> "  
-  ."<th > " . _("Day"). "<br>". _("Duration") ."</th>"
-  ."<th width=\"20%\"> " . _("State")."</th>"
-  ."<th width=\"100\"> " . _("Graph")."</th>"
-  //  ."<th> " . _("Duration") . "</th>"
-  ."<th> " . _("Total")."</th>"
-  ."<th>" . _("Total")."%  </th>"
-  ."<th> " . _("Mean")."% </th>"
-  ."<th>  " . _("Alerts")." </th>"
-  ."</tr>\n";
+  $tbl .= "<table border=cellspacing=\"0\" cellpadding=\"1\" border=\"0\">\n".
+    "<tr> "  
+    ."<th > " . _("Day"). "<br>". _("Duration") ."</th>"
+    ."<th width=\"20%\"> " . _("State")."</th>"
+    ."<th width=\"100\"> " . _("Graph")."</th>"
+    //  ."<th> " . _("Duration") . "</th>"
+    ."<th> " . _("Total")."</th>"
+    ."<th>" . _("Total")."%  </th>"
+    ."<th> " . _("Mean")."% </th>"
+    ."<th>  " . _("Alerts")." </th>"
+    ."</tr>\n";
 
-//$img ='../../../../img';
-$img ='file:///usr/share/centreon/www/modules/pdfreports/img';
+  //$img ='../../../../img';
+  $img ='file:///usr/share/centreon/www/modules/pdfreports/img';
 
-while ($row = $DBRESULT->fetchRow()) {
-  myDebug("Processing Date: " . date("Y-m-d", $row["date_start"]));
+  while ($row = $DBRESULT->fetchRow()) {
+    myDebug("Processing Date: " . date("Y-m-d", $row["date_start"]));
 		  
     $duration = $row["UP_T"] + $row["DOWN_T"] + $row["UNREACHABLE_T"];
     $totaltime = $duration + $row["UNDETERMINED_T"] + $row["MAINTENANCE_T"];
@@ -1129,14 +1138,10 @@ while ($row = $DBRESULT->fetchRow()) {
       ."  <tr class=\"odd\"><td>UNDETERMINED </td><td>" . '<img src="'.$img.'/1x1-ccf8ffff.png" width="'.round($row["UNDETERMINED_TP"]+0.001,3).'" height="10"></td><td>' 
       .  round($row["UNDETERMINED_T"],0)."</td><td>" .  $row["UNDETERMINED_TP"]. "%</td><td>" . "</td><td>" ."</td></tr>\n"
      ."\n";
-}
-$tbl .= "</table>\n";
-
-$DBRESULT->free();
-
-return $tbl;
-
-	
+  }
+  $tbl .= "</table>\n";
+  $DBRESULT->free();
+  return $tbl;
 }
 
 function testReportExistence ($name = NULL)	{

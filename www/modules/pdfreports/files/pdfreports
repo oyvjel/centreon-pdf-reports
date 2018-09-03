@@ -42,6 +42,7 @@ LOGFILE_PURGE="@LOG_DIR_CENTREON@/pdfreports_purge.log"
 ############################
 # daily at 4 am
 0 4 * * * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTSPURGE >> $LOGFILE_PURGE 2>&1
+#0 2 * * * root /bin/find /var/www/reports/db/ -mtime +60 -type f -delete  >> $LOGFILE_PURGE 2>&1
 
 
 ########  Centreon archive runs at 0600 and must finish first ???????????????
