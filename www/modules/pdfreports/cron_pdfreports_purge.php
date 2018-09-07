@@ -43,10 +43,10 @@
 	    exit;
 	}
 
-	(int)$nbProc = exec("ps -edf | grep cron_pdfreports_purge.php | grep -v grep | wc -l");
-	if ($nbProc > 2) {
-		programExit("More than one cron_pdfreports_purge.php process currently running. Going to exit...");
-	}
+#	(int)$nbProc = exec("ps -edf | grep cron_pdfreports_purge.php | grep -v grep | wc -l");
+#	if ($nbProc > 2) {
+#		programExit("More than one cron_pdfreports_purge.php process currently running. Going to exit...");
+#	}
 
 	ini_set('max_execution_time', 0);
 
@@ -121,9 +121,11 @@
 
 			$is_not_an_report = array(".","..","README","readme","LICENCE","licence");
 			$is_a_valid_report = array(
-				'pdf'
-			);
+						   'docx',
+						   'odt'
+						   );
 
+#			print_r ($is_a_valid_report);
 
 			$pdfDirName = getGeneralOptInfo("pdfreports_path_gen") . $reportinfo['report_id'] . "/";
 			if (! ($dh = @opendir($pdfDirName)) ) {
@@ -133,6 +135,7 @@
 			}
 
 			while (false !== ($filename = readdir($dh))) {
+#			  print $filename . PHP_EOL;
 				if ( $filename == "." || $filename == "..")
 					continue;
 
@@ -140,8 +143,11 @@
 					continue;
 
 				$pinfo = pathinfo($filename);
-				if (isset($pinfo["extension"]) && isset($is_a_valid_report[$pinfo["extension"]]))
+#				print_r($pinfo);
+				if (isset($pinfo["extension"]) && in_array($pinfo["extension"],$is_a_valid_report)) {
+#				  print  $pinfo["extension"] . " is a valid extention. Continuing".PHP_EOL;
 					continue;
+				}
 
 				$key = $filename;
 				$reportsFiles[] = $key;
@@ -149,7 +155,7 @@
 
 			closedir($dh);
 			rsort($reportsFiles);
-
+#			print_r($reportsFiles);
 			$start_i = intval($reportinfo['retention']) ;
 			for ($i = $reportinfo['retention']; $i < count($reportsFiles) ; $i++) {
 				$reportFilename = $pdfDirName . $reportsFiles[$i] ;

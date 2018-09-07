@@ -32,6 +32,10 @@ require_once  $centreon_path . "/www/modules/pdfreports/lib/tcpdf/tcpdf.php";
 // extend TCPF with custom functions
 class MYPDF extends TCPDF {
 
+  public $DirName = '/tmp';
+  public $FileName ='/tmp/centreon_report.pdf';
+  public $statlines = 0;
+  public $events = 0;
 
   //ajout de fonctions tcpdf pour la personnalisation du footer à partir de fct de personnalisation header
 
@@ -75,41 +79,7 @@ class MYPDF extends TCPDF {
         // Data
         $fill = 0;
 
-/*  2.3
- [14] => Array
-        (
-            [UP_A] => 2
-            [UP_T] => 172800
-            [DOWN_A] => 0
-            [DOWN_T] => 0
-            [UNREACHABLE_A] => 0
-            [UNREACHABLE_T] => 0
-            [UNDETERMINED_T] => 432000
-            [MAINTENANCE_T] => 0
-            [TOTAL_TIME] => 604800
-            [UP_TP] => 28.57
-            [DOWN_TP] => 0
-            [UNREACHABLE_TP] => 0
-            [UNDETERMINED_TP] => 71.43
-            [MAINTENANCE_TP] => 0
-            [MEAN_TIME] => 172800
-            [UP_MP] => 100
-            [DOWN_MP] => 0
-            [UNREACHABLE_MP] => 0
-            [MEAN_TIME_F] => 2d
-            [TOTAL_TIME_F] => 1w
-            [UP_TF] => 2d
-            [DOWN_TF] =>
-            [UNREACHABLE_TF] =>
-            [UNDETERMINED_TF] => 5d
-            [MAINTENANCE_TF] =>
-            [TOTAL_ALERTS] => 2
-            [NAME] => ITCHY
-            [ID] => 14
-        )
-*/
-
-	$PIECHART = $piechart_img;
+###	$PIECHART = $piechart_img;
 
 	// Services group state - récuperation des variables sans crochet ni guillemet pour les passer dans le tableau
 	$UP_TP_AV = $data["average"]["UP_TP"];
@@ -147,6 +117,7 @@ EOD;
 
 	//calcul du total des alertes
 	$TOTAL_A_AV = $UP_A_AV + $DOWN_A_AV + $UNREACHABLE_A_AV;
+	$this->events = $TOTAL_A_AV;
 
 //creation du tableau pour tcpdf, format html
 	
@@ -159,7 +130,7 @@ EOD;
 		  <tr style="background-color:#D5DFEB;">
 		    <th>State</th>
 		    <th>Total Time</th>
-		    <th>Mean Time</th>
+		    <th>SLA Time</th>
 		    <th>Alerts</th>
 		  </tr>
 		  
@@ -206,6 +177,19 @@ EOD;
 
 EOD;
 
+	$csv = <<<EOD
+Hosts group state;
+State;Total Time;SLA Time;Alerts;
+UP;$UP_TP_AV%;$UP_MP_AV%;$UP_A_AV;
+DOWN;$DOWN_TP_AV %;$DOWN_MP_AV %;$DOWN_A_AV;
+UNREACHABLE;$UNREACHABLE_TP_AV %;$UNREACHABLE_MP_AV %;$UNREACHABLE_A_AV;
+NoSLA;$MAINTENANCE_TP_AV %;$MAINTENANCE_MP_AV %;$MAINTENANCE_A_AV;
+UNDETERMINED;$UNDETERMINED_TP_AV %; 
+Total;;;$TOTAL_A_AV;
+
+
+EOD;
+
 
 
 
@@ -214,8 +198,8 @@ EOD;
 //init du deuxième tableau
 
 if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
-  $MAINTENANCE_HEADER = '<td  width="10%">NoSLA</td>';
-  $MAINTENANCE_HEADER_LABEL = '<td width="10%">%</td>';
+  $MAINTENANCE_HEADER = '<td  width="8%">NoSLA</td>';
+  $MAINTENANCE_HEADER_LABEL = '<td width="8%">%</td>';
   $HEADER_WIDTH = "9";
 } else {
    $MAINTENANCE_HEADER = "";
@@ -223,7 +207,7 @@ if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
    $HEADER_WIDTH = "8";
 }
 
-
+$csv .= "Host;UP;UP_SLA;alerts;Down;Down_SLA;alerts;Unreachable;Unreachable_SLA;alerts;NoSLA;Undetermined;\n";
 
 $tbl2 = <<<EOD
 
@@ -232,24 +216,24 @@ $tbl2 = <<<EOD
 	  <td colspan="$HEADER_WIDTH" width="100%">State Breakdowns For Hosts</td>
 	</tr>
 	<tr style="background-color:#D5DFEB;">
-	    <td colspan="1" width="20%"></td>
-	    <td colspan="2" width="20%">Up</td>
-	    <td colspan="2" width="20%">Down</td>
-	    <td colspan="2" width="20%">Unreachable</td>
+	    <td colspan="1" width="33%"></td>
+	    <td colspan="2" width="17%">Up</td>
+	    <td colspan="2" width="17%">Down</td>
+	    <td colspan="2" width="17%">Unreachable</td>
 	    $MAINTENANCE_HEADER 
-	    <td width="10%">Undetermined</td>
+	    <td width="8%">Undetermined</td>
 	</tr>
 
 	<tr style="background-color:#D5DFEB;">
-	    <td width="20%">Host</td>
-	    <td width="15%">%</td>
-	    <td width="5%">Alert</td>
-	    <td width="15%">%</td>
-	    <td width="5%">Alert</td>
-	    <td width="15%">%</td>
-	    <td width="5%">Alert</td>
+	    <td width="33%">Host</td>
+	    <td width="13%">%</td>
+	    <td width="4%">Al</td>
+	    <td width="13%">%</td>
+	    <td width="4%">Al</td>
+	    <td width="13%">%</td>
+	    <td width="4%">Al</td>
 	    $MAINTENANCE_HEADER_LABEL
-	    <td width="10%">%</td>
+	    <td width="8%">%</td>
 	</tr>
 		    
 
@@ -290,27 +274,31 @@ $UNREACHABLE_TP = $tab["UNREACHABLE_TP"];
 $UNREACHABLE_MP = $tab["UNREACHABLE_MP"];
 $UNREACHABLE_A = $tab["UNREACHABLE_A"];
 if (isset ($tab["MAINTENANCE_TP"])) {
-  $MAINTENANCE_TP =  '<td width="10%" style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
+  $MAINTENANCE_TP =  '<td style="background-color:#CC99FF;">'.$tab["MAINTENANCE_TP"]."</td>";
+  $NoSLA_TP = $tab["MAINTENANCE_TP"];
   
 } else {
   $MAINTENANCE_TP = "";
+  $NoSLA_TP = "";
 }
 $UNDETERMINED_TP = $tab["UNDETERMINED_TP"];
 
 $BACKGROUND_COLOR = ( $i % 2 ? "EDF4FF": "F7FAFF"); 
 
+$csv .= "$NAME;$UP_TP;$UP_MP;$UP_A;$DOWN_TP;$DOWN_MP;$DOWN_A;$UNREACHABLE_TP;$UNREACHABLE_MP;$UNREACHABLE_A;$NoSLA_TP;$UNDETERMINED_TP;\n";
+
 $tbl2 .= <<<EOD
 
 <tr style="background-color:#$BACKGROUND_COLOR;">
-<td width="20%" align="left">$NAME</td>
-<td width="15%" style="background-color:#13EB3A;">$UP_TP ($UP_MP)</td>
-<td width="5%" style="background-color:#13EB3A;">$UP_A</td>
-<td width="15%" style="background-color:#F91D05;">$DOWN_TP  ($DOWN_MP)</td>
-<td width="5%" style="background-color:#F91D05;">$DOWN_A</td>
-<td width="15%" style="background-color:#82CFD8;">$UNREACHABLE_TP ($UNREACHABLE_MP)</td>
-<td width="5%" style="background-color:#82CFD8;">$UNREACHABLE_A</td>
+<td align="left">$NAME</td>
+<td style="background-color:#13EB3A;">$UP_TP ($UP_MP)</td>
+<td style="background-color:#13EB3A;">$UP_A</td>
+<td style="background-color:#F91D05;">$DOWN_TP  ($DOWN_MP)</td>
+<td style="background-color:#F91D05;">$DOWN_A</td>
+<td style="background-color:#82CFD8;">$UNREACHABLE_TP ($UNREACHABLE_MP)</td>
+<td style="background-color:#82CFD8;">$UNREACHABLE_A</td>
 $MAINTENANCE_TP
-<td width="10%" style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
+<td style="background-color:#CCF8FF;">$UNDETERMINED_TP</td>
 </tr>
 
 
@@ -326,6 +314,7 @@ $tbl2 .= <<<EOD
 
 EOD;
 
+$this->statlines = $i;
 $tbl1 .= "\n <p>Total number of hosts = " . $i . "<p>\n";
 
 //print $tbl1;
@@ -336,6 +325,7 @@ $this->writeHTML($tbl1, true, false, false, false, '');
 $this->writeHTML($tbl2, true, false, false, false, '');
 
 @unlink($piechart_img) ;
+return $csv;
 
 }
 
@@ -344,7 +334,7 @@ $this->writeHTML($tbl2, true, false, false, false, '');
 /* pour les services groupes */
     
     // Colored table
-public function ServicesColoredTable($header,$data,$piechart_img) {
+public function ServicesSummary($header,$data,$piechart_img) {
         // Colors, line width and bold font
         $this->SetFillColor(255, 0, 0);
         $this->SetTextColor(255);
@@ -360,79 +350,6 @@ public function ServicesColoredTable($header,$data,$piechart_img) {
         // Data
         $fill = 0;
 
-	//print_r($data);
-/*
-    [average] => Array
-        (
-            [OK_T] => 103680
-            [OK_A] => 6
-            [WARNING_T] => 0
-            [WARNING_A] => 0
-            [CRITICAL_T] => 0
-            [CRITICAL_A] => 0
-            [UNKNOWN_T] => 0
-            [UNKNOWN_A] => 0
-            [UNDETERMINED_T] => 155520
-            [MAINTENANCE_T] => 0
-            [OK_TP] => 40
-            [WARNING_TP] => 0
-            [CRITICAL_TP] => 0
-            [UNKNOWN_TP] => 0
-            [UNDETERMINED_TP] => 60
-            [MAINTENANCE_TP] => 0
-            [TOTAL_TIME] => 259200
-            [MEAN_TIME] => 103680
-            [TOTAL_ALERTS] => 6
-            [OK_MP] => 100
-            [WARNING_MP] => 0
-            [CRITICAL_MP] => 0
-            [UNKNOWN_MP] => 0
-        )
-*/	
-	
-	
-/*
-    [14_26] => Array
-        (
-            [service_id] => 26
-            [OK_T] => 172800
-            [OK_A] => 2
-            [WARNING_T] => 0
-            [WARNING_A] => 0
-            [UNKNOWN_T] => 0
-            [UNKNOWN_A] => 0
-            [CRITICAL_T] => 0
-            [CRITICAL_A] => 0
-            [UNDETERMINED_T] => 86400
-            [MAINTENANCE_T] => 0
-            [TOTAL_TIME] => 259200
-            [OK_TP] => 66.67
-            [WARNING_TP] => 0
-            [CRITICAL_TP] => 0
-            [UNKNOWN_TP] => 0
-            [UNDETERMINED_TP] => 33.33
-            [MAINTENANCE_TP] => 0
-            [MEAN_TIME] => 172800
-            [OK_MP] =>  100
-            [WARNING_MP] => 0
-            [CRITICAL_MP] => 0
-            [UNKNOWN_MP] => 0
-            [MEAN_TIME_F] => 2d
-            [TOTAL_TIME_F] => 3d
-            [OK_TF] => 2d
-            [WARNING_TF] =>
-            [CRITICAL_TF] =>
-            [UNKNOWN_TF] =>
-            [UNDETERMINED_TF] => 1d
-            [MAINTENANCE_TF] =>
-            [TOTAL_ALERTS] => 2
-            [HOST_ID] => 14
-            [SERVICE_ID] => 26
-            [HOST_NAME] => ITCHY
-            [SERVICE_DESC] => Ping
-        )
-
-*/		
 
 	// Services group state - récuperation des variables sans crochet ni guillemet pour les passer dans le tableau
 	$OK_TP_AV = $data["average"]["OK_TP"];
@@ -466,27 +383,42 @@ public function ServicesColoredTable($header,$data,$piechart_img) {
   <td>$MAINTENANCE_A_AV</td>
 </tr>
 EOD;
- $ROWSPAN="9";
+	  $ROWSPAN="9";
 	} else {	  
 	  $MAINTENANCE_TR = "";
 	  $ROWSPAN="8";
 	}
 	
 	//calcul du total des alertes
-	$TOTAL_A_AV = $OK_A_AV + $WARNING_A_AV + $UNKNOWN_A_AV;
-
+	$TOTAL_A_AV = $OK_A_AV + $WARNING_A_AV + $UNKNOWN_A_AV + $CRITICAL_A_AV;
+	$this->events = $TOTAL_A_AV;
+	
 //creation du tableau pour tcpdf, format html
 	
+	$tbl1 = <<<EOD
+<p>
+<hr>
+<b>Note:</b> Bug in Centreon results in some services reported as "Undetermined" even if monitoring graphs show they have been OK. Until this has been fixed one should consider entries with Undetermined time &gt; 0 in error.    
+<br>
+See https://forum.centreon.com/forum/centreon-ui/centreon-web-interface/147569-centreon-2-8-11-many-host-service-undetermined-in-reporting
+
+Run to fix:
+sudo -u centreon /usr/share/centreon/cron/eventReportBuilder -r > /tmp/eventReportBuilder.log
+sudo -u centreon /usr/share/centreon/cron/dashboardBuilder -r > /tmp/dashboardBuilder &
+<hr>
+</p>
+EOD;
+
 	$tbl1 = <<<EOD
 <table border="0" align="center">
 	<tr   border="0" >
 	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
-	<td colspan="4"  style="background-color:#D7D7DD;" >Services group state</td>
+	<td colspan="4"  style="background-color:#D7D7DD;" >$header</td>
 	</tr>
 <tr>
   <th style="background-color:#D5DFEB;">State</th>
   <th style="background-color:#D5DFEB;">Total Time</th>
-  <th style="background-color:#D5DFEB;">Mean Time</th>
+  <th style="background-color:#D5DFEB;">SLA Time</th>
   <th style="background-color:#D5DFEB;">Alerts</th>
 </tr>
 
@@ -539,21 +471,30 @@ $MAINTENANCE_TR
 </table>
 EOD;
 
-// State Breakdowns For Host Services 
-
-//init du deuxième tableau
-
-if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
-  $MAINTENANCE_HEADER = '<th width="6%" >NoSLA</th>';
-  $MAINTENANCE_HEADER_LABEL = '<th width="6%">%</th>';
-  $HEADER_WIDTH = "12";
-} else {
-   $MAINTENANCE_HEADER = "";
-   $MAINTENANCE_HEADER_LABEL = "";
-   $HEADER_WIDTH = "11";
+	//écriture des tableaux
+	$this->writeHTML($tbl1, true, false, false, false, ''); 
+	@unlink($piechart_img) ;
 }
 
-$tbl2 = <<<EOD
+	
+///////////////////////////////////////////////////////////////////////////////////////77
+// State Breakdowns For Host Services 
+
+public function ServicesColoredTable($data,$header) {
+	
+	//init du deuxième tableau
+  //  if (isset($data["average"]["MAINTENANCE_TP"]) ) {
+    //    if (isset($MAINTENANCE_TR) && $MAINTENANCE_TR != "") {
+    $MAINTENANCE_HEADER = '<th width="6%" >NoSLA</th>';
+    $MAINTENANCE_HEADER_LABEL = '<th width="6%">%</th>';
+    $HEADER_WIDTH = "12";
+    //  } else {
+    //$MAINTENANCE_HEADER = "";
+    //$MAINTENANCE_HEADER_LABEL = "";
+    //$HEADER_WIDTH = "11";
+    //}
+	
+$css = <<<EOD
 <style>
 table, td  {
   border-collapse: collapse;
@@ -604,47 +545,9 @@ tr#red {
 }  
 
 </style>
-
-<table>
-	<tr>
-	<th width="100%" colspan="$HEADER_WIDTH" style="background-color:#D7D6DD;" >State Breakdowns For Host Services</th>
-	</tr>
-	<tr style="background-color:#D5DFEB;" >
-		<th colspan="2" width="36%"  ></th>
-		<th colspan="2" width="13%" >OK</th>
-		<th colspan="2" width="13%" >Warning</th>
-		<th colspan="2" width="13%" >Critical</th>
-		<th colspan="2" width="13%" >Unknown</th>
-		$MAINTENANCE_HEADER
-		<th width="6%" >Undef</th>
-	</tr>
-
-	<tr style="background-color:#D5DFEB;">
-		<th width="16%" >Host Name</th>
-		<th width="20%">Service</th>
-		<th width="10%">%</th>
-		<th width="3%">A</th>
-		<th width="10%">%</th>
-		<th width="3%">A</th>
-		<th width="10%">%</th>
-		<th width="3%">A</th>
-		<th width="10%">%</th>
-		<th width="3%">A</th>
-		$MAINTENANCE_HEADER_LABEL
-		<th width="6%">%</th>
-	</tr>
 EOD;
 
-
-unset($data['average']);
-$data = array_values($data);
-
-usort($data, function($a, $b) {
-    if ($a['OK_MP']==$b['OK_MP']) return 0;
-    return ($a['OK_MP']<$b['OK_MP'])?-1:1;
-  });
-
-
+$tbl2 = '';
 //parsing des services du service group et ajout dans tableau
 $i =0;
 foreach ($data	 as $key => $tab) {
@@ -700,23 +603,58 @@ $i++;
 //  }
 }
 
+$this->statlines = $i;
+
 //fermeture du tableau
 $tbl2 .= <<<EOD
 </table>
 
 EOD;
 
-$tbl1 .= "\n <p>Total number of services = " . $i . "<p>\n";
+$tbl1 = <<<EOD
+<table>
+	<tr>
+        <th width="100%" colspan="$HEADER_WIDTH" style="background-color:#D7D6DD;font-size: 12px;" >$header (total=$i)</th>
+	</tr>
+	<tr style="background-color:#D5DFEB;" >
+		<th colspan="2" width="36%"  ></th>
+		<th colspan="2" width="13%" >OK</th>
+		<th colspan="2" width="13%" >Warning</th>
+		<th colspan="2" width="13%" >Critical</th>
+		<th colspan="2" width="13%" >Unknown</th>
+		$MAINTENANCE_HEADER
+		<th width="6%" >Undet.</th>
+	</tr>
 
-//écriture des tableaux
-$this->writeHTML($tbl1, true, false, false, false, ''); 
-$this->writeHTML($tbl2, true, false, false, false, ''); 
+	<tr style="background-color:#D5DFEB;">
+		<th width="16%" >Host</th>
+		<th width="20%">Service</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		<th width="10%">%</th>
+		<th width="3%">A</th>
+		$MAINTENANCE_HEADER_LABEL
+		<th width="6%">%</th>
+	</tr>
+EOD;
+
+//$tbl1 = "\n <p>Total number of services = " . $i . "<p>\n";
+
+global $debug;	
+if($debug ){ print $css . $tbl1 . $tbl2;}
+
+$this->writeHTML($css . $tbl1 . $tbl2 , true, false, false, false, ''); 
+//$this->writeHTML($tbl1, true, false, false, false, ''); 
+//$this->writeHTML($tbl2, true, false, false, false, ''); 
 
 //
-@unlink($piechart_img) ;
 
 
-    } 
+} 
 
 
 

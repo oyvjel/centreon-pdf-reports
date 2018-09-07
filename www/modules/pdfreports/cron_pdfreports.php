@@ -27,6 +27,8 @@
 	 */
 	$centreonConf = "@CENTREON_ETC@/centreon.conf.php";
 
+echo "[".date("Y-m-d H:i:s")."] Start generating reports for ". $argv[1] ."\n";
+
 
 	/* ***********************************************
 	 * Test if Centreon configuration file exists
@@ -44,11 +46,12 @@
 	}
 
 	(int)$nbProc = exec("ps -edf | grep cron_pdfreports.php | grep -v grep | wc -l");
-	if ($nbProc > 2) {
+	if ($nbProc > 3) {
 		programExit("More than one cron_pdfreports.php process currently running. Going to exit...");
 	}
 
 	ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '-1');
 
 	try {
 		
@@ -123,6 +126,9 @@
 	
 		foreach ( $reports as $report_id => $name ) {
 			//print_r($report_id);
+		        echo "[".date("Y-m-d H:i:s")."] Report ". $name ."\n";
+			GenerateReport ($report_id);
+	 /*
 			$hosts = array();
 			$reportinfo = array();
 			$hosts = getHostReport($report_id);
@@ -134,24 +140,49 @@
 			$dates = getPeriodToReportFork($reportinfo['period']);
 			$start_date = $dates[0] ;
 			$end_date = $dates[1];
-			
+			$category = explode(',',$reportinfo["service_category"]);            
+			$hgnr = 0;
 			$reportingTimePeriod = getreportingTimePeriod();
 			
+			$templfile = getGeneralOptInfo("pdfreports_path_gen") . "SLA-mal.docx";
+			$Allfiles[] = $templfile;
+
 			// Generate hostgroup reports			
 			
 			if (isset($hosts) && count($hosts) > 0) {
-			foreach ( $hosts['report_hgs'] as $hgs_id ) {      
+			  foreach ( $hosts['report_hgs'] as $hgs_id ) {      
+			    echo "[".date("Y-m-d H:i:s")."] Host group id ". $hgs_id ."\n";
 		
-				$stats = array();
-				$stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
-				
-				//print_r($stats);
-				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
-				
-				//print_r($Allfiles); 
+			    $stats = array();
+			    $stats = getLogInDbForHostGroup($hgs_id , $start_date, $end_date, $reportingTimePeriod);
+			    
+			    //print_r($stats);
+			    //tableau contenant la liste des pdf générés
+			    //			    $Allfiles[] = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+			    $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
+			    pdfHosts($pdf, $stats);
+			    pdfHostsTimeline($pdf, $hgs_id, $start_date, $end_date);
+			    $Allfiles[] = pdfWriteFile($pdf);
+
+			    
+			  //print_r($Allfiles);
+			  // Services for hosts in hostgrp:
+			    if (is_numeric ($category) ) {
+			      echo "[".date("Y-m-d H:i:s")."] Host group services in category ". $category ."\n";
+			      
+			      unset($stats);
+			      $stats = array();
+			      $stats = getLogInDbForHostgrpServices($hgs_id , $start_date, $end_date, $reportingTimePeriod,$category[$hgnr]);
+			      if( ! empty($stats)){
+				$pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
+				pdfServices($pdf, $stats,"Services in hostggroup state");
+				$Allfiles[] = pdfWriteFile($pdf);
+			      }
+			      $hgnr++;
+			    }
+			  }
+			  
 			}
-		}
 			// Generate servicegroup reports
 		if (isset( $services ) && count($services) > 0 ) {			
 			foreach ( $services['report_sg'] as $sg_id ) {      
@@ -162,7 +193,9 @@
 				//print_r($stats);				
 
 				//tableau contenant la liste des pdf générés
-				$Allfiles[] = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );				
+				$pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $sg_stats, $reportinfo );				
+				pdfServices($pdf, $stats,"Services group state");
+				$Allfiles[] = pdfWriteFile($pdf);
 				//print_r($Allfiles); 
 			}
 		}
@@ -181,12 +214,14 @@
 			$emails = null;
 			$services = null ;
 			$hosts = null;
+	 */	
 		}
+	 
 
 	} catch (Exception $e) {
 		programExit($e->getMessage());
 	}
-
+programExit("Report generation terminated successfully");
 
 
 

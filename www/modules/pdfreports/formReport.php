@@ -129,7 +129,7 @@ error_reporting(E_ALL);
 	/*
 	 * Getting period table list to make the form period selection (today, this week etc.)
 	 */
-	$periodList = getPeriodList();
+	$periodList = getPeriodListFork();
 	
 	##########################################################
 	# Var information to format the element
@@ -174,10 +174,24 @@ error_reporting(E_ALL);
 	
 
 	$form->addElement('select', 'period', _("Period"), $periodList);
+	$form->addElement('text', 'report_template', _("Report Template"), $attrsText);
 	$form->addElement('text', 'report_title', _("Report Title"), $attrsText);
 	$form->addElement('text', 'subject', _("Mail Subject"), $attrsText);
 	$form->addElement('textarea', 'mail_body', _("Mail body"), $attrsTextarea);	
-	$form->addElement('textarea', 'report_comment', _("Comments"), $attrsTextarea);
+        $form->addElement('textarea', 'report_comment', _("Comments"), $attrsTextarea);
+      
+
+        $report['reportOpts']['bcsv'] = $report['bcsv'];
+        $report['reportOpts']['btimeline'] = $report['btimeline'];
+        $report['reportOpts']['bsummary_only'] = $report['bsummary_only'];
+        $report['reportOpts']['bdebug'] = $report['bdebug'];
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'bcsv', '&nbsp;', _("CSV-file"));
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'btimeline', '&nbsp;', _("Timeline"));
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'bsummary_only', '&nbsp;', _("Summary Only"));
+        $repOpt[] = HTML_QuickForm::createElement('checkbox', 'bdebug', '&nbsp;', _("Debug"));
+        $form->addGroup($repOpt, 'reportOpts', _("Report Options"), '&nbsp;&nbsp;');
+
+
 
 	/*
 	 *  Contact groups
@@ -206,6 +220,7 @@ error_reporting(E_ALL);
 	$ams3->setButtonAttributes('remove', array('value' => _("Delete")));
 	$ams3->setElementTemplate($template);
 	echo $ams3->getElementJs(false);	
+	$form->addElement('text', 'service_category', _("Create report for services in category ID,<br> comma separated lists matching hostgroup sequence.  "), $attrsText);
 	
 	/*
 	 *  Hosts 

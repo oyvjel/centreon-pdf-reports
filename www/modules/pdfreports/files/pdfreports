@@ -42,11 +42,16 @@ LOGFILE_PURGE="@LOG_DIR_CENTREON@/pdfreports_purge.log"
 ############################
 # daily at 4 am
 0 4 * * * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTSPURGE >> $LOGFILE_PURGE 2>&1
+#0 2 * * * root /bin/find /var/www/reports/db/ -mtime +60 -type f -delete  >> $LOGFILE_PURGE 2>&1
+
+
+########  Centreon archive runs at 0600 and must finish first ???????????????
 
 0 5 * * * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS yesterday >> $LOGFILE 2>&1
 
 # weekely at 3 am
-0 3 * * 0 $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS thisweek >> $LOGFILE 2>&1
+#0 3 * * 0 $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS thisweek >> $LOGFILE 2>&1
+0 3 * * 1 $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS lastweek >> $LOGFILE 2>&1
 
 #0 4 * * * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS last7days >> $LOGFILE 2>&1
 
@@ -58,6 +63,10 @@ LOGFILE_PURGE="@LOG_DIR_CENTREON@/pdfreports_purge.log"
 0 4 1 * * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS lastmonth >> $LOGFILE 2>&1
 
 #0 4 * * * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS thisyear >> $LOGFILE 2>&1
+
+# Every quarter at 22.00
+0 22 1 */3 * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS lastquarter >> $LOGFILE 2>&1
+
 
 # Every first january at 5 am
 0 5 1 1 * $CRONTAB_EXEC_USER /usr/bin/php -q $PDFREPORTS lastyear >> $LOGFILE 2>&1

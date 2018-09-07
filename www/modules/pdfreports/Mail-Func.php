@@ -41,7 +41,7 @@ function mailer($fromname,$from,$to,$subject,$body,$server, $files, $name) {
     $mail->Subject  = $subject;
     $mail->Body     = $body;
     $mail->WordWrap = 50;
-    
+    $mail->IsHTML(true);     
     
     foreach ($files as $key => $file ) { 
         if (file_exists($file["url"])) {

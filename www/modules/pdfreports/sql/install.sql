@@ -26,17 +26,30 @@ CREATE TABLE IF NOT EXISTS `pdfreports_reports` (
   `name` varchar(254) default NULL,
   `report_description` varchar(254) default NULL,
   `period` varchar(254) default NULL,
+  `bcsv` boolean default NULL,
+  `btimeline` boolean default NULL,
+  `summary_only` boolean default NULL,
+  `bdebug` boolean default NULL,
   `report_title` varchar(254) default NULL, 
+  `report_template` varchar(254) default NULL, 
   `subject` varchar(254) default NULL,
   `mail_body` varchar(254) default NULL,
+  `service_category` varchar(60) default NULL,
   `retention` int(11) default NULL,
   `report_comment` text,
   `activate` enum('0','1') default NULL,
   PRIMARY KEY  (`report_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
+-- alter table  pdfreports_reports add column `bcsv` boolean default NULL;
+-- alter table  pdfreports_reports add column `btimeline` boolean default NULL;
+-- alter table  pdfreports_reports add column `bsummary_only` boolean default NULL;
+-- alter table  pdfreports_reports add column `bdebug` boolean default NULL;
 
+-- alter table  pdfreports_reports add column `report_template` varchar(254) default NULL;
 
+-- alter table  pdfreports_reports add column `service_category` int(11) default NULL;
+-- or: alter table  pdfreports_reports change service_category service_category varchar(60);
 -- --------------------------------------------------------
 
 --

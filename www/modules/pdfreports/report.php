@@ -65,6 +65,10 @@ error_reporting(E_ALL);
 		if ($_POST["o2"] != "")
 			$o = $_POST["o2"];
 	}	
+#	include("./include/common/autoNumLimit.php");
+#	include_once("./include/common/quickSearch.php");
+#	include("./include/common/checkPagination.php");
+	require_once "./include/reporting/dashboard/common-Func.php";	
 	
 	switch ($o)	{
 		case "a" 	: require_once($path."formReport.php"); break; #Add a host
@@ -74,12 +78,68 @@ error_reporting(E_ALL);
 		case "s" 	: enableReportInDB($report_id); require_once($path."listReport.php"); break; #Activate a host
 		case "ms" 	: enableReportInDB(NULL, isset($select) ? $select : array()); require_once($path."listReport.php"); break;
 		case "u" 	: disableReportInDB($report_id); require_once($path."listReport.php"); break; #Desactivate a host
-		case "rn" 	: require_once($path."listReport.php"); RunNowReportInDB($report_id); break; # Run reportNow
+		case "rn" 	: RunNowReportInDB($report_id); break; # Run reportNow
+#		case "rn" 	: require_once($path."listReport.php"); RunNowReportInDB($report_id); break; # Run reportNow
 		case "mu" 	: disableReportInDB(NULL, isset($select) ? $select : array()); require_once($path."listReport.php"); break;
 		case "m" 	: multipleReportInDB(isset($select) ? $select : array(), $dupNbr); require_once($path."listReport.php"); break; #Duplicate n hosts
 		case "d" 	: deleteReportInDB(isset($select) ? $select : array()); require_once($path."listReport.php"); break; #Delete n hosts
+		case "v" 	: ViewReports($report_id); break; # View report dir.
 		default 	: require_once($path."listReport.php"); break;
 	}	
 	
+
+function ViewReports ($report_id = null) {
+  global $p;	  
+#  if (!$report_id && !count($report_arr)) return;
+#  if (!$report_id) return;
+  global $pearDB, $oreon, $debug;
+#  $reportinfo = getReportInfo($report_id);
+  $ReportDir = getGeneralOptInfo("pdfreports_path_gen") . $report_id . "/"; 
+
+    $dir = $ReportDir . "*";
+#  print "View reports in ".$ReportDir . "\n";
+
+    //$dir = substr(dirname($_SERVER['PHP_SELF']),strlen($_SERVER['DOCUMENT_ROOT']));
+   $dir = "*";
+  if (!empty($_GET['path'])) {
+    $dir = $_GET['path']."/*";
+  }
+
+#  $dir = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $file);
+  // Remove any runs of periods (thanks falstro!)
+  $file = mb_ereg_replace("([\.]{2,})", '', $file);
+
+  $dir = $ReportDir . $dir;
+
+#echo "dir i funk = " .$dir;
+
+
+
+
+  $g = glob($dir);
+  echo "<h2>Index of ".$dir.":</h2>";
+  usort($g,function($a,$b) {
+      if(is_dir($a) == is_dir($b))
+        return strnatcasecmp($a,$b);
+    else
+      return is_dir($a) ? -1 : 1;
+    });
+ 
+  function printElement ($file) {
+    global $p;	  
+    $b = getGeneralOptInfo("pdfreports_path_gen");
+    $a = str_replace($b,"",$file);
+    if (is_dir($file)) {
+      return '<a href="'.$a.'">'.$a.'/</a> <a href="?o=v&p='.$p . "&path=". $a.'">show</a>';
+    }
+    else
+      {
+#	return '<a href="'.$a.'">'.$a.'</a>';
+	return '<a href="./modules/pdfreports/viewreport.php?file='.$a.'">'.basename($a).'</a>';
+      }
+  }
+  echo implode("<br>",array_map(function($a) {return printElement($a);},$g));
+
+}
 	
 ?>
