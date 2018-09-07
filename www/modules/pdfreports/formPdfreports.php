@@ -20,8 +20,8 @@
  *   - Øyvind Jelstad
  */
 
-	if (!isset($oreon))
-		exit();
+  //	if (!isset($oreon))
+  //		exit();
 
 	#Pear library
 	require_once "HTML/QuickForm.php";
@@ -35,7 +35,13 @@
 	#PHP functions
 	require_once $path."DB-Func.php";		
 	require_once $centreon_path."www/include/common/common-Func.php";
-	require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";
+        global $centreon_version;
+        if ( $centreon_version >= 280) {
+	  require_once $centreon_path."www/include/Administration/parameters/DB-Func.php";
+	} else {
+	  require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";
+	}
+
 	require_once $centreon_path."www/class/centreonDB.class.php";
 	require_once "./include/reporting/dashboard/common-Func.php";
 		
@@ -81,7 +87,7 @@
 	#
 	## Form Rules
 	#
-	function slash($elem = NULL)	{
+	function slash_NOT_USED($elem = NULL)	{
 		if ($elem)
 			return rtrim($elem, "/")."/";
 	}

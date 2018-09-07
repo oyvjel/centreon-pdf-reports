@@ -30,12 +30,19 @@ error_reporting(E_ALL);
 */
 
 
-    global $pearDB, $centreon_path;
+global $pearDB, $centreon_path;
+
+// TODO : Fix version from DB_Func ?
+$centreon_version = 281;
 
     require_once $centreon_path."www/include/common/common-Func.php";
-    require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";    
+    if ( $centreon_version >= 280) {
+      require_once $centreon_path."www/include/Administration/parameters/DB-Func.php";
+    } else {
+      require_once $centreon_path."www/include/options/oreon/generalOpt/DB-Func.php";    
+    }
 
-// require_once $centreon_path."www/include/Administration/parameters/DB-Func.php";
+
     
     updateOption($pearDB, "pdfreports_smtp_server_address",  "127.0.0.1");
     updateOption($pearDB, "pdfreports_email_sender", "pdfreports@local.dom");

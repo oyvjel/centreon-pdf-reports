@@ -1,4 +1,4 @@
-<?php
+1;4205;0c<?php
 /*
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -403,7 +403,14 @@ function GenerateReport ($report_id = null) {
   $files = array();
   $b = getGeneralOptInfo("pdfreports_path_gen");
   // FQDN for host when called from cli uses gethostbyaddr("127.0.1.1"). Define fqdn for 127.0.1.1 in /etc/hosts. Ref Debian man hostname
-  $h = empty($_SERVER['HTTP_HOST']) ? 'https://'. gethostbyaddr("127.0.1.1") : 'https://'. $_SERVER['HTTP_HOST'];
+  if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) {
+    $scheme = "https://";
+  }else{
+    $scheme = "http://";
+  }
+  $h = empty($_SERVER['HTTP_HOST']) ? $scheme . gethostbyaddr("127.0.1.1") : $scheme. $_SERVER['HTTP_HOST'];
+  
+  //$h = empty($_SERVER['HTTP_HOST']) ? gethostbyaddr("127.0.1.1") : $_SERVER['HTTP_HOST'];
   $summary .= "\n<p>Generated files:<ul>\n";
   foreach ( $Allfiles as $file) {
     $files[basename($file)]["url"] = $file;

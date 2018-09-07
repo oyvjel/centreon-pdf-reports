@@ -20,13 +20,19 @@
  *   - Øyvind Jelstad
  */
 
-	if (!isset ($oreon))
-		exit ();
+  //ini_set('display_errors',1);
+  //error_reporting(E_ALL);
+
+
+  //	if (!isset ($oreon))
+  //		exit ();
+
 	
 	require_once "HTML/QuickForm.php";
 	require_once 'HTML/QuickForm/advmultiselect.php';
 	require_once 'HTML/QuickForm/Renderer/ArraySmarty.php';
 	
+
 	#Path to the configuration dir
 	global $path;
 	$path = "./modules/pdfreports/";
@@ -38,4 +44,5 @@
 		case "pdfreports" : require_once($path."formPdfreports.php"); break;
 		default : require_once($path."formPdfreports.php"); break;
 	}
+
 ?>
