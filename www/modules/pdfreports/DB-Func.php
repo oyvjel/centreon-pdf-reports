@@ -486,15 +486,15 @@ function getGeneralOptInfo($option_name)	{
 	
 	//reprise de la fonction getPeriodToReport de www/include/reporting/dashboard/common-Func.php pour retourner un timestamp sans $_POST
 function getPeriodToReportFork($arg) {	
-<<<<<<< HEAD
-                $interval = getDateSelectPredefined($arg);
-		//		$interval = getDateSelect_predefined($arg);
-=======
-		$interval = getDateSelect_predefined_Fork($arg);
->>>>>>> 2.7
-		$start_date = $interval[0];
-		$end_date = $interval[1];
-		return(array($start_date,$end_date));
+#  global $centreon_version;
+#  if ( $centreon_version >= 280) {
+#    $interval = getDateSelectPredefined($arg);
+#  } else {
+    $interval = getDateSelect_predefined_Fork($arg);
+#  }
+  $start_date = $interval[0];
+  $end_date = $interval[1];
+  return(array($start_date,$end_date));
 }
 
 function getDateSelect_predefined_Fork($period){
@@ -988,19 +988,20 @@ function getHGDayStat($id, $start_date, $end_date) {
   global $pearDB;
   global $pearDBO;
   global $centreon_version;
-  if ( $centreon_version >= 280) { 
-    global $centreon;
-  } else {
-    global $oreon;
-  }
 
-  $i = 0;
-  
   /*
    * getting all hosts from hostgroup
    */
   
-  $hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
+  if ( $centreon_version >= 280) { 
+    global $centreon;
+    $hosts_id = $centreon->user->access->getHostHostGroupAclConf($id, 'broker');
+  } else {
+    global $oreon;
+    $hosts_id = $oreon->user->access->getHostHostGroupAclConf($id, $oreon->broker->getBroker());
+  }
+
+  $i = 0;
   if (count($hosts_id) == 0) {
     return 'No hosts in group';
   }
@@ -1012,25 +1013,6 @@ function getHGDayStat($id, $start_date, $end_date) {
     }
     $str .= "'". $hostId ."'";
     $i++;
-<<<<<<< HEAD
-}
-if ($str == "") {
-    $str = "''";
-}
-unset($hg);
-unset($DBRESULT);
-*/
-$hosts_id = $centreon->user->access->getHostHostGroupAclConf($id, 'broker');
-if (count($hosts_id) == 0) {
-  return 'No hosts in group';
-}
-$str = "";
-foreach ($hosts_id as $hostId => $host_name) {
-  //  $host_stats = getLogInDbForHost($hostId, $start_date, $end_date, $reportTimePeriod);
-  if ($str != "") {
-    $str .= ", ";
-=======
->>>>>>> 2.7
   }
 
   myDebug("Hosts in group: " . $str);
