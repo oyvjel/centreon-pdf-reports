@@ -74,9 +74,10 @@ function shutdown()
 
 
 function RunNowReportInDB ($report_id = null, $report_arr = array()) {
-
+  global $centreon_version;
   //  register_shutdown_function('shutdown'); 
   print "<p>Generating reports....</p>\n";
+  print "<p>Centreon version = ". $centreon_version . "</p>\n";
 	  
   ini_set('max_execution_time', 900);
   myDebug("Max execution time set to 900 sec");
@@ -158,8 +159,8 @@ function GenerateReport ($report_id = null) {
 
       $pdf = pdfGen( $hgs_id, 'hgs', $start_date, $end_date, $stats, $reportinfo );
       myDebug("Generated file: ". $pdf->FileName);
-      $grp_comment = "Hostgroup comment: " . getMyHostGroupField($hgs_id,"hg_comment");
-      $pdf->writeHTML($grp_comment); 
+      $grp_comment = getMyHostGroupField($hgs_id,"hg_comment");
+      $pdf->writeHTML("<p><b>Host group comment:</b><br>\n" . $grp_comment . "\n<hr>\n"); 
 
       myDebug("Generate HOST stats");
       $csv = pdfHosts($pdf, $stats);
@@ -228,9 +229,11 @@ function GenerateReport ($report_id = null) {
 
 	$pdf = pdfGen( $hgs_id, 'shg', $start_date, $end_date, $stats, $reportinfo );
 	//		      		    print_r($stats);
-	$grp_comment = "<p><b>Host group comment:</b><br>\n" .getMyHostGroupField($hgs_id,"hg_comment") . "\n<p>\n";
-	$pdf->writeHTML($grp_comment); 
-	$pdf->writeHTML("<hr>\n<b>Service category(" . $category[$hgnr] ."):</b> ". getMyCategorieField($category[$hgnr],'sc_description'));
+	$grp_comment = getMyHostGroupField($hgs_id,"hg_comment");
+	$pdf->writeHTML("<p><b>Host group comment:</b><br>\n" . $grp_comment . "\n<p>\n"); 
+	$pdf->writeHTML("<b>Service category(" . $category[$hgnr] ."):</b> ". getMyCategorieField($category[$hgnr],'sc_description') . "\n<hr>\n");
+
+	myDebug("Generate services stats");
 	pdfServices($pdf, $stats,"Services in hostggroup overview");
 
 	$up = $average['OK_MP'] + $average['WARNING_MP'];
@@ -277,16 +280,15 @@ function GenerateReport ($report_id = null) {
       unset($stats);
       $stats = array();
       $stats = getLogInDbForServicesGroup($sg_id , $start_date, $end_date, $reportingTimePeriod);
-      // $sla_ok = $stats["average"]['OK_MP'];
-      //      $sla_ok += $stats["average"]['WARNING_MP'];
       $average = $stats["average"];
       myDebug("Averages for servicegroup: ". print_r($average, true) );
       $pdf = pdfGen( $sg_id, 'sgs', $start_date, $end_date, $stats, $reportinfo );
-      $grp_comment = "Service group comment: " . getMyServiceGroupField($sg_id,"sg_comment");
-      $pdf->writeHTML($grp_comment); 
+      $grp_comment = getMyServiceGroupField($sg_id,"sg_comment");
+      $pdf->writeHTML("<p><b>Service group comment:</b><br>\n" . $grp_comment . "\n<hr>\n"); 
 
+      myDebug("Generate ServiceGroup stats");
       pdfServices($pdf, $stats,"Services group overview");
-      //      $sla_data[] = array('hgroup'=> $group_name , 'repfile'=>basename($pdf->FileName), 'OK'=>$sla_ok, 'hnr'=>$pdf->statlines, 'events'=>$pdf->events);
+
       $up = $average['OK_MP'] + $average['WARNING_MP'];
       $up_a = $average['OK_A'] + $average['WARNING_A'];
       $sla_data[] = array('hgroup'=> "Servicegrp " . $group_name
@@ -354,6 +356,7 @@ function GenerateReport ($report_id = null) {
     $TBS->LoadTemplate($templfile, OPENTBS_ALREADY_UTF8); // Also merge some [onload] automatic fields (depends of the type of document).
     $GLOBALS['okh'] = round($okh,2); 
     $GLOBALS['oks'] = round($oks,2);
+    $GLOBALS['sla'] = 99.5;
 
     $GLOBALS['kam'] = ''; 
     $GLOBALS['author'] = "Centreon"; 
