@@ -1,4 +1,4 @@
-1;4205;0c<?php
+<?php
 /*
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -37,7 +37,7 @@ error_reporting(E_ALL);
         include_once $centreon_path . "www/include/common/common-Func.php";
         require_once("Mail-Func.php");
         require_once("PDF-Func.php");
-        require_once("DB-Func.php");
+#        require_once("DB-Func.php");
 
 
 #  $debug = true;
@@ -334,7 +334,7 @@ function GenerateReport ($report_id = null) {
     myDebug("Include TBS = ". print_r($centreon_path, true));
     include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_class.php");
     include_once($centreon_path . "/www/modules/pdfreports/lib/tbs/tbs_plugin_opentbs.php");
-
+    $GLOBALS['cologo'] = $centreon_path . "/www/modules/pdfreports/img/headers/" . getGeneralOptInfo("pdfreports_report_header_logo");
     // prevent from a PHP configuration problem when using mktime() and date()
     if (version_compare(PHP_VERSION,'5.1.0')>=0) {
       if (ini_get('date.timezone')=='') {
