@@ -414,7 +414,7 @@ function GenerateReport ($report_id = null) {
   $summary .= "\n<p>Generated files:<ul>\n";
   foreach ( $Allfiles as $file) {
     $files[basename($file)]["url"] = $file;
-    $u = str_replace($b,"/reports/",$file);
+    $u = str_replace($b,"/reports/db/",$file);
     $a = str_replace($b,"",$file);
     // $u = rawurlencode($u); # Chrome does not decode %2F (/)in url (except for the error message ???). Firefox is OK.
     // https://<server>/reports%2F1%2F2018-08-01_Last%20Month_Report.docx produces the message:
@@ -423,7 +423,8 @@ function GenerateReport ($report_id = null) {
     // translate only space:
     $u = str_replace(" ","%20",$u);
     $a = str_replace(" ","%20",$a);
-    $summary .= '<li><a href="'. $h . $u . "\">". $file . "</a>. ";
+    //    $summary .= '<li><a href="'. $h . $u . "\">". $file . "</a>. ";
+    $summary .= '<li>' . $file . ". ";
     $summary .= 'Download: <a href="' . $h. '/centreon/modules/pdfreports/viewreport.php?file='. $a . '">'.basename($file)."</a></li>\n ";
 
 #    $summary .= "<li><a href=\"$a\">". $file . "</a> </li>\n";
