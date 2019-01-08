@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `pdfreports_reports` (
   `period` varchar(254) default NULL,
   `bcsv` boolean default NULL,
   `btimeline` boolean default NULL,
-  `summary_only` boolean default NULL,
+  `bsummary_only` boolean default NULL,
   `bdebug` boolean default NULL,
   `report_title` varchar(254) default NULL, 
   `report_template` varchar(254) default NULL, 
