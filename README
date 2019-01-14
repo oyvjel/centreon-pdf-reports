@@ -30,7 +30,23 @@ Configuration -> PDF Reports
 Find more there: http://community.centreon.com/projects/pdfreports/
 Or on IRC : freenode, #Centreon
 
+Major changes by oyvind.jelstad@rejlers.no:
+-------------------------------------------
 Adapted to 2.7 and 2.8 by Øyvind Jelstad with good help from http://www.sugarbug.fr/atelier/techniques/ihmweb/centreon/centreon-pdf-reports-27/
+
+Added support for summary reports in odt and docx formats. A template report file is post-processed with [OpenTBS](https://www.tinybutstrong.com/opentbs.php) to insert report-values into the template.
+
+Some usage documentation/notes in USAGE.md
+
+Added service reports based on combination os hostgroups and service categories.
+
+Support for CSV-file report.
+
+Host daily timeline support.
+
+Summary and download links in GUI and mail.
+
+Multiple formatting and layout changes.
 
 Note: DB changed, but no automatic upgrade procedure. Reinstall or manually alter DB.  See sql/install.sql and git diffs.
 
