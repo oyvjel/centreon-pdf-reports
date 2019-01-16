@@ -98,18 +98,16 @@ class MYPDF extends TCPDF {
 	$UNDETERMINED_TP_AV = $data["average"]["UNDETERMINED_TP"];
 	if (isset($data["average"]["MAINTENANCE_TP"]) ) {
 	  $MAINTENANCE_TP_AV =  (isset($data["average"]["MAINTENANCE_TP"]) && $data["average"]["MAINTENANCE_TP"] != NULL ? $data["average"]["MAINTENANCE_TP"] : 0 );
-	  $MAINTENANCE_MP_AV = (isset($data["average"]["MAINTENANCE_MP"]) && $data["average"]["MAINTENANCE_MP"] != NULL ? $data["average"]["MAINTENANCE_MP"] : 0 );
-	  $MAINTENANCE_A_AV = (isset($data["average"]["MAINTENANCE_A"]) && $data["average"]["MAINTENANCE_A"] != NULL ? $data["average"]["MAINTENANCE_A"] : 0 );
 	  
 	  $MAINTENANCE_TR = <<<EOD
 <tr style="background-color:#EDF4FF;">
   <th style="background-color:#CC99FF;">NoSLA</th>
-  <td>$MAINTENANCE_TP_AV %</td> 
-  <td>$MAINTENANCE_MP_AV %</td>
-  <td>$MAINTENANCE_A_AV</td>
+  <td>$MAINTENANCE_TP_AV %</td>
+  <td> </td> 
+  <td> </td> 
 </tr>
 EOD;
- $ROWSPAN="8";
+	  $ROWSPAN="8";
 	} else {	  
 	  $MAINTENANCE_TR = "";
 	  $ROWSPAN="7";
@@ -158,7 +156,7 @@ EOD;
 		  
 		  $MAINTENANCE_TR
 		  
-		  <tr style="background-color:#EDF4FF;">
+		  <tr style="background-color:#F7FAFF;">
 		    <th style="background-color:#CCF8FF;">UNDETERMINED</th>
 		    <td>$UNDETERMINED_TP_AV %</td> 
 		    <td></td>
@@ -376,7 +374,7 @@ public function ServicesSummary($header,$data,$piechart_img) {
 	  $MAINTENANCE_A_AV = "" ;// (isset($data["average"]["MAINTENANCE_A"]) && $data["average"]["MAINTENANCE_A"] != NULL ? $data["average"]["MAINTENANCE_A"] : 0 );
 	  
 	  $MAINTENANCE_TR = <<<EOD
-<tr style="background-color:#EDF4FF;">
+<tr style="background-color:#F7FAFF;">
   <th style="background-color:#CC99FF;">NoSLA</th>
   <td>$MAINTENANCE_TP_AV %</td> 
   <td>$MAINTENANCE_MP_AV</td>
@@ -415,50 +413,50 @@ EOD;
 	<td rowspan="$ROWSPAN" border="0" width="125" align="center" valign="center" ><img src="file://$piechart_img" /></td>
 	<td colspan="4"  style="background-color:#D7D7DD;" >$header</td>
 	</tr>
-<tr>
-  <th style="background-color:#D5DFEB;">State</th>
-  <th style="background-color:#D5DFEB;">Total Time</th>
-  <th style="background-color:#D5DFEB;">SLA Time</th>
-  <th style="background-color:#D5DFEB;">Alerts</th>
+<tr style="background-color:#D5DFEB;">
+  <th>State</th>
+  <th>Total Time</th>
+  <th>SLA Time</th>
+  <th>Alerts</th>
 </tr>
 
-<tr>
+<tr style="background-color:#F7FAFF;">
   <th style="background-color:#13EB3A;">Ok</th>
-  <td style="background-color:#F7FAFF;">$OK_TP_AV %</td> 
-  <td style="background-color:#F7FAFF;">$OK_MP_AV %</td>
-  <td style="background-color:#F7FAFF;">$OK_A_AV</td>
+  <td>$OK_TP_AV %</td> 
+  <td>$OK_MP_AV %</td>
+  <td>$OK_A_AV</td>
 </tr>
 
-<tr>
+<tr style="background-color:#EDF4FF;">
   <th style="background-color:#F8C706;">Warning</th>
-  <td style="background-color:#EDF4FF;">$WARNING_TP_AV %</td> 
-  <td style="background-color:#EDF4FF;">$WARNING_MP_AV %</td>
-  <td style="background-color:#EDF4FF;">$WARNING_A_AV</td>
+  <td>$WARNING_TP_AV %</td> 
+  <td>$WARNING_MP_AV %</td>
+  <td>$WARNING_A_AV</td>
 </tr>
 
 
-<tr>
+<tr style="background-color:#F7FAFF;">
   <th style="background-color:#F91E05;">Critical</th>
-  <td style="background-color:#F7FAFF;">$CRITICAL_TP_AV %</td> 
-  <td style="background-color:#F7FAFF;">$CRITICAL_MP_AV %</td>
-  <td style="background-color:#F7FAFF;">$CRITICAL_A_AV</td>
+  <td>$CRITICAL_TP_AV %</td> 
+  <td>$CRITICAL_MP_AV %</td>
+  <td>$CRITICAL_A_AV</td>
 </tr>
 
 
-<tr>
+<tr style="background-color:#EDF4FF;">
   <th style="background-color:#DCDADA;">Unknown</th>
-  <td style="background-color:#EDF4FF;">$UNKNOWN_TP_AV %</td> 
-  <td style="background-color:#EDF4FF;">$UNKNOWN_MP_AV %</td>
-  <td style="background-color:#EDF4FF;">$UNKNOWN_A_AV</td>
+  <td>$UNKNOWN_TP_AV %</td> 
+  <td>$UNKNOWN_MP_AV %</td>
+  <td>$UNKNOWN_A_AV</td>
 </tr>
 
 $MAINTENANCE_TR
 
-<tr>
+<tr style="background-color:#EDF4FF;">
   <th style="background-color:#CCF8FF;">Undertermined</th>
-  <td style="background-color:#F7FAFF;">$UNDETERMINED_TP_AV %</td> 
-  <td style="background-color:#F7FAFF;"></td>
-  <td style="background-color:#F7FAFF;"></td>
+  <td>$UNDETERMINED_TP_AV %</td> 
+  <td></td>
+  <td></td>
 </tr>
 
 <tr>
